@@ -1,0 +1,1 @@
+export default function WishlistPage(){ return <main className="mx-auto max-w-[1180px] px-4 py-12 text-center"><h1 className="text-xl font-black">Produk Favorit</h1><p className="mt-3 text-sm text-slate-500">Belum ada produk yang disimpan.</p></main>; }
