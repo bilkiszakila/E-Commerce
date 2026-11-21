@@ -49,12 +49,6 @@ export function Header() {
           </Link>
         </div>
       </div>
-      <nav className="hidden border-b border-slate-200 bg-white md:block">
-        <div className="mx-auto flex h-11 max-w-[1180px] items-center gap-7 px-5 text-sm font-medium">
-          <button className="flex h-11 items-center gap-2 bg-slate-950 px-4 text-white"><Menu size={17} /> Semua Kategori</button>
-        </div>
-      </nav>
-
       {open && <div className="fixed inset-0 z-[70] bg-black/40" onClick={() => setOpen(false)}>
         <aside className="h-full w-[82%] max-w-sm bg-white p-5 text-slate-900" onClick={(e) => e.stopPropagation()}>
           <div className="mb-6 flex items-center justify-between"><b className="text-lg">Semua Kategori</b><button onClick={() => setOpen(false)}><X /></button></div>
