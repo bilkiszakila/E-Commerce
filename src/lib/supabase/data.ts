@@ -122,9 +122,9 @@ export type ShippingOption = {
 };
 
 export type BankOption = {
-  name: string;
-  accountName: string;
-  accountNumber: string;
+  bank_name: string;
+  account_name: string;
+  account_number: string;
 };
 
 export type StoreSettings = {
@@ -152,7 +152,13 @@ export async function getStoreSettings(): Promise<StoreSettings | null> {
     bankName: data.bank_name,
     bankAccountName: data.bank_account_name,
     bankAccountNumber: data.bank_account_number,
-    bankOptions: Array.isArray(data.bank_options) ? data.bank_options : [],
+    bankOptions: Array.isArray(data.bank_options)
+      ? data.bank_options.map((bank: Record<string, string>) => ({
+          bank_name: bank.bank_name || bank.name || "",
+          account_name: bank.account_name || bank.accountName || "",
+          account_number: bank.account_number || bank.accountNumber || "",
+        })).filter((bank: BankOption) => bank.bank_name && bank.account_number)
+      : [],
     shippingOptions: Array.isArray(data.shipping_options)
       ? data.shipping_options
       : [],

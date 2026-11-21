@@ -415,12 +415,19 @@ insert into public.store_settings (
   bank_name,
   bank_account_name,
   bank_account_number,
+  bank_options,
   shipping_options
 ) values (
   1,
   'BCA',
   'PT Adi Cetak',
   '1234567890',
+  '[
+    {"bank_name":"BCA","account_name":"PT Adi Cetak","account_number":"1234567890"},
+    {"bank_name":"Mandiri","account_name":"PT Adi Cetak","account_number":"9876543210"},
+    {"bank_name":"BNI","account_name":"PT Adi Cetak","account_number":"1122334455"},
+    {"bank_name":"BRI","account_name":"PT Adi Cetak","account_number":"001122334455"}
+  ]'::jsonb,
   '[
     {"name":"JNE Reg","description":"Estimasi 2–3 hari","price":17000},
     {"name":"J&T Express","description":"Estimasi 1–2 hari","price":19000},

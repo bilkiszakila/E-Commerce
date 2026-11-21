@@ -8,10 +8,10 @@ create table if not exists public.store_settings (
   bank_account_name text not null default 'PT Adi Cetak',
   bank_account_number text not null default '1234567890',
   bank_options jsonb not null default '[
-    {"name":"BCA","accountName":"PT Adi Cetak","accountNumber":"1234567890"},
-    {"name":"Mandiri","accountName":"PT Adi Cetak","accountNumber":"9876543210"},
-    {"name":"BNI","accountName":"PT Adi Cetak","accountNumber":"1122334455"},
-    {"name":"BRI","accountName":"PT Adi Cetak","accountNumber":"001122334455"}
+    {"bank_name":"BCA","account_name":"PT Adi Cetak","account_number":"1234567890"},
+    {"bank_name":"Mandiri","account_name":"PT Adi Cetak","account_number":"9876543210"},
+    {"bank_name":"BNI","account_name":"PT Adi Cetak","account_number":"1122334455"},
+    {"bank_name":"BRI","account_name":"PT Adi Cetak","account_number":"001122334455"}
   ]'::jsonb,
   shipping_options jsonb not null default '[
     {"name":"JNE Reg","description":"Estimasi 2–3 hari","price":17000},
@@ -37,10 +37,10 @@ insert into public.store_settings (
   'PT Adi Cetak',
   '1234567890',
   '[
-    {"name":"BCA","accountName":"PT Adi Cetak","accountNumber":"1234567890"},
-    {"name":"Mandiri","accountName":"PT Adi Cetak","accountNumber":"9876543210"},
-    {"name":"BNI","accountName":"PT Adi Cetak","accountNumber":"1122334455"},
-    {"name":"BRI","accountName":"PT Adi Cetak","accountNumber":"001122334455"}
+    {"bank_name":"BCA","account_name":"PT Adi Cetak","account_number":"1234567890"},
+    {"bank_name":"Mandiri","account_name":"PT Adi Cetak","account_number":"9876543210"},
+    {"bank_name":"BNI","account_name":"PT Adi Cetak","account_number":"1122334455"},
+    {"bank_name":"BRI","account_name":"PT Adi Cetak","account_number":"001122334455"}
   ]'::jsonb,
   '[
     {"name":"JNE Reg","description":"Estimasi 2–3 hari","price":17000},

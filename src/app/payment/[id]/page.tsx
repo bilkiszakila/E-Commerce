@@ -41,7 +41,7 @@ function PaymentContent() {
   const transferBankName = order?.payment?.startsWith("Transfer Bank - ")
     ? order.payment.replace("Transfer Bank - ", "")
     : "";
-  const transferBank = storeSettings?.bankOptions.find((bank) => bank.name === transferBankName);
+  const transferBank = storeSettings?.bankOptions.find((bank) => bank.bank_name === transferBankName);
 
   async function confirmPayment() {
     if (!proofFile || !order) {
@@ -105,7 +105,7 @@ function PaymentContent() {
     ) : order.payment === "bank" || order.payment?.startsWith("Transfer Bank -") ? (
       <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-left">
         <b className="text-sm">Instruksi Transfer</b>
-        <div className="mt-3 space-y-2 text-sm"><p>Bank: <b>{transferBank?.name || storeSettings?.bankName || "-"}</b></p><p>Atas nama: <b>{transferBank?.accountName || storeSettings?.bankAccountName || "-"}</b></p><div className="flex items-center justify-between"><span>Nomor rekening:</span><b className="text-base">{transferBank?.accountNumber || storeSettings?.bankAccountNumber || "-"}</b></div></div>
+        <div className="mt-3 space-y-2 text-sm"><p>Bank: <b>{transferBank?.bank_name || storeSettings?.bankName || "-"}</b></p><p>Atas nama: <b>{transferBank?.account_name || storeSettings?.bankAccountName || "-"}</b></p><div className="flex items-center justify-between"><span>Nomor rekening:</span><b className="text-base">{transferBank?.account_number || storeSettings?.bankAccountNumber || "-"}</b></div></div>
         <label className="mt-4 flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white text-xs font-bold"><Upload size={16}/> {proof ? "Bukti dipilih" : "Unggah Bukti Transfer"}<input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e)=>{const file=e.target.files?.[0]||null;setProofFile(file);setProof(file?.name||"");}}/></label>
         <button onClick={confirmPayment} disabled={submittingProof} className="mt-3 h-11 w-full rounded-lg bg-blue-600 text-sm font-bold text-white disabled:opacity-60">{submittingProof ? "Mengirim Bukti..." : "Konfirmasi Pembayaran"}</button>
       </div>

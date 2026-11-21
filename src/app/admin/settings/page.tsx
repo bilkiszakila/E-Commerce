@@ -17,7 +17,7 @@ export default function AdminSettingsPage() {
     { name: "Ambil Sendiri", description: "Semarang Store", price: 0 },
   ]);
   const [bankOptions, setBankOptions] = useState<BankOption[]>([
-    { name: "BCA", accountName: "PT Adi Cetak", accountNumber: "1234567890" },
+    { bank_name: "BCA", account_name: "PT Adi Cetak", account_number: "1234567890" },
   ]);
   const [promoBanner, setPromoBanner] = useState<PromoBannerSettings>(() => {
     if (typeof window === "undefined") return { dataUrl: "", name: "" };
@@ -37,12 +37,18 @@ export default function AdminSettingsPage() {
 
   async function save() {
     localStorage.setItem("adicetak-promo-banner", JSON.stringify(promoBanner));
+    const validBankOptions = bankOptions.filter((option) => option.bank_name && option.account_name && option.account_number);
+    const firstBank = validBankOptions[0];
+    if (!firstBank) {
+      alert("Minimal satu bank tujuan harus diisi.");
+      return;
+    }
     const { error } = await supabase.from("store_settings").upsert({
       id: 1,
-      bank_name: bank.bank,
-      bank_account_name: bank.accountName,
-      bank_account_number: bank.accountNumber,
-      bank_options: bankOptions,
+      bank_name: firstBank.bank_name,
+      bank_account_name: firstBank.account_name,
+      bank_account_number: firstBank.account_number,
+      bank_options: validBankOptions,
       shipping_options: shippingOptions,
       updated_at: new Date().toISOString(),
     }, { onConflict: "id" });
@@ -97,13 +103,13 @@ export default function AdminSettingsPage() {
             <div className="border-t pt-3">
               <p className="mb-2 text-xs font-bold text-slate-600">Pilihan Bank Tujuan</p>
               {bankOptions.map((option, index) => (
-                <div key={`${option.name}-${index}`} className="mb-2 grid gap-2 rounded-lg border p-3 sm:grid-cols-3">
-                  <input aria-label="Nama bank" value={option.name} onChange={(e)=>setBankOptions((old)=>old.map((item,i)=>i===index?{...item,name:e.target.value}:item))} className="h-10 rounded border px-3 text-sm" placeholder="Nama bank"/>
-                  <input aria-label="Atas nama rekening" value={option.accountName} onChange={(e)=>setBankOptions((old)=>old.map((item,i)=>i===index?{...item,accountName:e.target.value}:item))} className="h-10 rounded border px-3 text-sm" placeholder="Atas nama"/>
-                  <input aria-label="Nomor rekening" value={option.accountNumber} onChange={(e)=>setBankOptions((old)=>old.map((item,i)=>i===index?{...item,accountNumber:e.target.value}:item))} className="h-10 rounded border px-3 text-sm" placeholder="Nomor rekening"/>
+                <div key={`${option.bank_name}-${index}`} className="mb-2 grid gap-2 rounded-lg border p-3 sm:grid-cols-3">
+                  <input aria-label="Nama bank" value={option.bank_name} onChange={(e)=>setBankOptions((old)=>old.map((item,i)=>i===index?{...item,bank_name:e.target.value}:item))} className="h-10 rounded border px-3 text-sm" placeholder="Nama bank"/>
+                  <input aria-label="Atas nama rekening" value={option.account_name} onChange={(e)=>setBankOptions((old)=>old.map((item,i)=>i===index?{...item,account_name:e.target.value}:item))} className="h-10 rounded border px-3 text-sm" placeholder="Atas nama"/>
+                  <input aria-label="Nomor rekening" value={option.account_number} onChange={(e)=>setBankOptions((old)=>old.map((item,i)=>i===index?{...item,account_number:e.target.value}:item))} className="h-10 rounded border px-3 text-sm" placeholder="Nomor rekening"/>
                 </div>
               ))}
-              <button type="button" onClick={()=>setBankOptions((old)=>[...old,{name:"",accountName:"",accountNumber:""}])} className="h-10 w-full rounded-lg border border-dashed text-xs font-bold text-slate-500">+ Tambah Bank</button>
+              <button type="button" onClick={()=>setBankOptions((old)=>[...old,{bank_name:"",account_name:"",account_number:""}])} className="h-10 w-full rounded-lg border border-dashed text-xs font-bold text-slate-500">+ Tambah Bank</button>
             </div>
           </div>
         </section>

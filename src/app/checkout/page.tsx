@@ -26,13 +26,15 @@ export default function CheckoutPage() {
   ]);
   const [bankOptions, setBankOptions] = useState<BankOption[]>([]);
   const [selectedBank, setSelectedBank] = useState("");
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [coordinates, setCoordinates] = useState<{lat:number;lng:number}|null>(null);
   const [addressErrors, setAddressErrors] = useState<Record<string, string>>({});
   useEffect(() => {
     getStoreSettings().then((settings) => {
       if (settings?.shippingOptions.length) setShippingOptions(settings.shippingOptions);
       if (settings?.bankOptions.length) {
         setBankOptions(settings.bankOptions);
-        setSelectedBank(settings.bankOptions[0].name);
+        setSelectedBank(settings.bankOptions[0].bank_name);
       }
     });
   }, []);
@@ -44,6 +46,41 @@ export default function CheckoutPage() {
       : Math.min(appliedVoucher.value, cartTotal)
     : 0;
   const total = Math.max(0, cartTotal + shipping - discount);
+
+  async function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      alert("Browser tidak mendukung lokasi.");
+      return;
+    }
+    setLocationLoading(true);
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      setCoordinates({ lat, lng });
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=id`);
+        if (!response.ok) throw new Error("Reverse geocoding gagal.");
+        const data = await response.json();
+        const address = data.address || {};
+        setForm((old) => ({
+          ...old,
+          province: address.state || address.region || old.province,
+          city: address.city || address.county || address.municipality || address.town || old.city,
+          district: address.subdistrict || address.village || address.suburb || address.municipality || old.district,
+          postcode: String(address.postcode || old.postcode).replace(/\D/g, "").slice(0, 5),
+          address: [address.road, address.house_number, address.neighbourhood, address.suburb].filter(Boolean).join(", ") || old.address,
+        }));
+      } catch (error) {
+        console.error(error);
+        alert("Lokasi ditemukan, tetapi alamat belum dapat diisi otomatis.");
+      } finally {
+        setLocationLoading(false);
+      }
+    }, (error) => {
+      setLocationLoading(false);
+      alert(error.code === 1 ? "Izin lokasi ditolak. Aktifkan izin lokasi di browser." : "Lokasi saat ini tidak dapat ditemukan.");
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 });
+  }
 
   async function applyPromo() {
     const code = (voucherCode || memberCode).trim().toUpperCase();
@@ -107,6 +144,12 @@ export default function CheckoutPage() {
         district: form.district,
         address: form.address,
         postcode: form.postcode,
+        lat: coordinates?.lat || null,
+        lng: coordinates?.lng || null,
+        google_maps_url: coordinates ? `https://maps.google.com/?q=${coordinates.lat},${coordinates.lng}` : null,
+        selected_bank: payment === "bank"
+          ? bankOptions.find((bank) => bank.bank_name === selectedBank) || null
+          : null,
       },
     });
     if (orderError) {
@@ -149,15 +192,15 @@ export default function CheckoutPage() {
               <Field label="Nama Penerima" value={form.name} onChange={(v) => setForm({...form,name:v})} error={addressErrors.name}/>
               <Field label="Nomor WhatsApp" value={form.phone} onChange={(v) => setForm({...form,phone:v})} error={addressErrors.phone}/>
               <label className="text-xs font-bold text-slate-600">Provinsi
-                <select value={form.province} onChange={(e)=>setForm({...form,province:e.target.value,city:"",district:""})} className="mt-2 h-11 w-full rounded-lg border px-3 font-normal"><option value="">Pilih Provinsi</option><option>DKI Jakarta</option><option>Jawa Barat</option><option>Jawa Tengah</option><option>Jawa Timur</option><option>Banten</option><option>DI Yogyakarta</option></select>
+                <input value={form.province} onChange={(e)=>setForm({...form,province:e.target.value})} placeholder="Masukkan provinsi" className="mt-2 h-11 w-full rounded-lg border px-3 font-normal"/>
                 {addressErrors.province && <span className="mt-1 block text-[11px] text-red-500">{addressErrors.province}</span>}
               </label>
               <label className="text-xs font-bold text-slate-600">Kota / Kabupaten
-                <select value={form.city} onChange={(e)=>setForm({...form,city:e.target.value,district:""})} className="mt-2 h-11 w-full rounded-lg border px-3 font-normal"><option value="">Pilih Kota/Kabupaten</option>{form.province === "DKI Jakarta" ? ["Jakarta Selatan","Jakarta Barat","Jakarta Timur","Jakarta Utara","Jakarta Pusat"].map((city)=><option key={city}>{city}</option>) : ["Kota/Kabupaten Utama","Kabupaten Lain"].map((city)=><option key={city}>{city}</option>)}</select>
+                <input value={form.city} onChange={(e)=>setForm({...form,city:e.target.value})} placeholder="Masukkan kota atau kabupaten" className="mt-2 h-11 w-full rounded-lg border px-3 font-normal"/>
                 {addressErrors.city && <span className="mt-1 block text-[11px] text-red-500">{addressErrors.city}</span>}
               </label>
               <label className="text-xs font-bold text-slate-600">Kecamatan
-                <select value={form.district} onChange={(e)=>setForm({...form,district:e.target.value})} className="mt-2 h-11 w-full rounded-lg border px-3 font-normal"><option value="">Pilih Kecamatan</option>{["Setiabudi","Tebet","Cilandak","Kebayoran Baru","Menteng","Kecamatan Utama","Kecamatan Lain"].map((district)=><option key={district}>{district}</option>)}</select>
+                <input value={form.district} onChange={(e)=>setForm({...form,district:e.target.value})} placeholder="Masukkan kecamatan" className="mt-2 h-11 w-full rounded-lg border px-3 font-normal"/>
                 {addressErrors.district && <span className="mt-1 block text-[11px] text-red-500">{addressErrors.district}</span>}
               </label>
               <Field label="Kode Pos" value={form.postcode} onChange={(v) => setForm({...form,postcode:v.replace(/\D/g,"").slice(0,5)})} error={addressErrors.postcode}/>
@@ -165,7 +208,7 @@ export default function CheckoutPage() {
                 <textarea value={form.address} onChange={(e) => setForm({...form,address:e.target.value})} className="mt-2 h-20 w-full resize-none rounded-lg border px-3 py-3 font-normal outline-none focus:border-red-400" placeholder="Nama jalan, RT/RW, nomor rumah, gedung, patokan..."/>
                 {addressErrors.address && <span className="mt-1 block text-[11px] text-red-500">{addressErrors.address}</span>}
               </label>
-              <button className="flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 text-xs font-bold sm:col-span-2"><Navigation size={16}/> Gunakan Lokasi Saat Ini</button>
+              <button type="button" onClick={useCurrentLocation} disabled={locationLoading} className="flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 text-xs font-bold sm:col-span-2 disabled:opacity-60"><Navigation size={16}/> {locationLoading ? "Mencari lokasi..." : "Gunakan Lokasi Saat Ini"}</button>
             </div>
           </section>
           <section className="rounded-xl bg-white p-5">
@@ -205,7 +248,7 @@ export default function CheckoutPage() {
             {payment === "bank" && <div className="mt-3"><label className="text-xs font-bold text-slate-600">Pilih Bank Tujuan
               <select value={selectedBank} onChange={(e)=>setSelectedBank(e.target.value)} className="mt-2 h-11 w-full rounded-lg border px-3 text-sm font-normal">
                 <option value="">Pilih Bank</option>
-                {bankOptions.map((bank)=><option key={bank.name} value={bank.name}>{bank.name} — {bank.accountNumber}</option>)}
+                {bankOptions.map((bank)=><option key={bank.bank_name} value={bank.bank_name}>{bank.bank_name} — {bank.account_number}</option>)}
               </select>
               {addressErrors.payment && <span className="mt-1 block text-[11px] text-red-500">{addressErrors.payment}</span>}
             </label></div>}
@@ -239,7 +282,9 @@ export default function CheckoutPage() {
                 <b className="mt-1 block text-xs">Transfer Bank</b>
               </label>
             </div>
-            {payment === "bank" && <div className="mt-3"><select value={selectedBank} onChange={(e)=>setSelectedBank(e.target.value)} className="h-10 w-full rounded-lg border px-3 text-xs"><option value="">Pilih Bank</option>{bankOptions.map((bank)=><option key={bank.name} value={bank.name}>{bank.name} — {bank.accountNumber}</option>)}</select>{addressErrors.payment && <p className="mt-1 text-[11px] text-red-500">{addressErrors.payment}</p>}</div>}
+            {payment === "bank" && <div className="mt-3"><select value={selectedBank} onChange={(e)=>setSelectedBank(e.target.value)} className="h-10 w-full rounded-lg border px-3 text-xs"><option value="">Pilih Bank</option>{bankOptions.map((bank)=><option key={bank.bank_name} value={bank.bank_name}>{bank.bank_name} — {bank.account_number}</option>)}</select>{addressErrors.payment && <p className="mt-1 text-[11px] text-red-500">{addressErrors.payment}</p>}
+              {selectedBank && (() => { const bank = bankOptions.find((item) => item.bank_name === selectedBank); return bank ? <div className="mt-2 rounded-lg bg-slate-50 p-3 text-xs"><p>Atas Nama: <b>{bank.account_name}</b></p><p className="mt-1">No. Rekening: <b>{bank.account_number}</b></p></div> : null; })()}
+            </div>}
           </div>
           <div className="mt-5 space-y-3 border-t pt-4 text-sm"><div className="flex justify-between"><span className="text-slate-500">Subtotal</span><b>{formatRupiah(cartTotal)}</b></div><div className="flex justify-between"><span className="text-slate-500">Ongkir</span><b>{formatRupiah(shipping)}</b></div>{discount > 0 && <div className="flex justify-between"><span className="text-slate-500">Diskon</span><b className="text-emerald-600">-{formatRupiah(discount)}</b></div>}<div className="flex justify-between border-t pt-3"><b>Total</b><b className="text-xl text-red-500">{formatRupiah(total)}</b></div></div>
           <button onClick={pay} disabled={loading} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-red-500 text-sm font-bold text-white disabled:opacity-60"><ShieldCheck size={18}/>{loading ? "Memproses..." : payment === "qris" ? "Bayar QRIS dengan Xendit" : "Lanjutkan Transfer Bank"}</button>
