@@ -3,19 +3,27 @@ create extension if not exists pgcrypto;
 create table if not exists public.categories (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
+  slug text unique,
   image text,
+  thumbnail_url text,
   sort_order integer not null default 0,
+  active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
 create table if not exists public.products (
   id text primary key,
   name text not null,
+  slug text,
   category text not null,
   price bigint not null,
   old_price bigint,
   image text,
+  thumbnail_url text,
   badge text,
+  discount_percent integer not null default 0 check (discount_percent >= 0 and discount_percent <= 100),
+  discount_active boolean not null default false,
+  stock integer not null default 0,
   rating numeric(2,1) not null default 0,
   sold integer not null default 0,
   active boolean not null default true,
@@ -37,12 +45,18 @@ create table if not exists public.vouchers (
   type text not null check (type in ('fixed', 'percent')),
   value numeric not null,
   label text,
+  minimum_purchase bigint not null default 0,
+  usage_limit integer,
+  used_count integer not null default 0,
+  starts_at timestamptz,
+  expires_at timestamptz,
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
+  email text,
   name text,
   phone text,
   is_admin boolean not null default false,
@@ -99,6 +113,20 @@ create table if not exists public.settings (
 );
 
 alter table public.profiles add column if not exists is_admin boolean not null default false;
+alter table public.profiles add column if not exists email text;
+alter table public.categories add column if not exists slug text;
+alter table public.categories add column if not exists thumbnail_url text;
+alter table public.categories add column if not exists active boolean not null default true;
+alter table public.products add column if not exists slug text;
+alter table public.products add column if not exists thumbnail_url text;
+alter table public.products add column if not exists discount_percent integer not null default 0;
+alter table public.products add column if not exists discount_active boolean not null default false;
+alter table public.products add column if not exists stock integer not null default 0;
+alter table public.vouchers add column if not exists minimum_purchase bigint not null default 0;
+alter table public.vouchers add column if not exists usage_limit integer;
+alter table public.vouchers add column if not exists used_count integer not null default 0;
+alter table public.vouchers add column if not exists starts_at timestamptz;
+alter table public.vouchers add column if not exists expires_at timestamptz;
 
 create or replace function public.handle_new_auth_user()
 returns trigger
@@ -107,11 +135,12 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, name, phone)
+  insert into public.profiles (id, name, phone, email)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'name', ''),
-    coalesce(new.raw_user_meta_data->>'phone', '')
+    coalesce(new.raw_user_meta_data->>'phone', ''),
+    new.email
   )
   on conflict (id) do nothing;
   return new;
@@ -163,6 +192,9 @@ drop policy if exists "Admins read all order items" on public.order_items;
 drop policy if exists "Public read promo banner files" on storage.objects;
 drop policy if exists "Authenticated upload promo banner files" on storage.objects;
 drop policy if exists "Authenticated update promo banner files" on storage.objects;
+drop policy if exists "Public read product files" on storage.objects;
+drop policy if exists "Authenticated upload product files" on storage.objects;
+drop policy if exists "Authenticated update product files" on storage.objects;
 
 create policy "Public read categories" on public.categories for select using (true);
 create policy "Public read products" on public.products for select using (active = true);
@@ -215,6 +247,10 @@ insert into storage.buckets (id, name, public)
 values ('promo-banners', 'promo-banners', true)
 on conflict (id) do update set public = true;
 
+insert into storage.buckets (id, name, public)
+values ('products', 'products', true)
+on conflict (id) do update set public = true;
+
 create policy "Public read promo banner files" on storage.objects
 for select using (bucket_id = 'promo-banners');
 
@@ -223,6 +259,15 @@ for insert to authenticated with check (bucket_id = 'promo-banners');
 
 create policy "Authenticated update promo banner files" on storage.objects
 for update to authenticated using (bucket_id = 'promo-banners');
+
+create policy "Public read product files" on storage.objects
+for select using (bucket_id = 'products');
+
+create policy "Authenticated upload product files" on storage.objects
+for insert to authenticated with check (bucket_id = 'products');
+
+create policy "Authenticated update product files" on storage.objects
+for update to authenticated using (bucket_id = 'products');
 
 insert into public.categories (name, image, sort_order) values
   ('Banner & Spanduk', 'https://images.unsplash.com/photo-1557426272-fc759fdf7a8d?auto=format&fit=crop&w=500&q=80', 1),

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ChevronDown, Heart, MapPin, Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { useStore } from "./store";
 import { categories, products } from "./data";
 import brandLogo from "./images/brand-logo.svg";
@@ -32,9 +33,11 @@ export function ProductCard({ product, className = "" }: { product: typeof produ
 }
 
 export function Header() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { cartCount, loggedIn, isAdmin } = useStore();
+  if (pathname.startsWith("/admin")) return null;
 
   return (
     <header className="sticky top-0 z-50">
@@ -96,6 +99,8 @@ export function Header() {
 }
 
 export function Footer() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/admin")) return null;
   return <footer className="mt-12 border-t bg-slate-950 py-10 text-slate-300">
     <div className="mx-auto grid max-w-295 gap-8 px-5 text-sm md:grid-cols-4">
       <div><Link href="/" className="mb-3 block" aria-label="ADI CETAK - Beranda"><Image src={brandLogo} alt="ADI CETAK" width={146} height={32} className="h-8 w-auto" /></Link><p className="text-slate-400">Harga Bersahabat, Kualitas Mantap.</p></div>
