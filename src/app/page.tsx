@@ -24,10 +24,10 @@ export default function Home() {
         </div>
         <div className="relative h-[210px] overflow-hidden rounded-lg md:hidden">
           <img src="https://images.unsplash.com/photo-1557426272-fc759fdf7a8d?auto=format&fit=crop&w=900&q=90" alt="Promo cetak" className="h-full w-full object-cover"/>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#1842D2] to-[#1842D2]/70 p-5 text-white"><b className="text-[10px]">PROMO NOVEMBER</b><h1 className="mt-2 max-w-[220px] text-xl font-black leading-tight">Bikin Brand Lebih Dilihat</h1><Link href="/promo" className="mt-4 inline-block rounded-md bg-white px-3 py-2 text-[11px] font-bold text-[var(--brand-primary)]">Lihat Promo</Link></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 to-transparent p-6 text-white"><b className="text-[11px] text-red-400">PROMO NOVEMBER</b><h1 className="mt-2 max-w-[220px] text-2xl font-black">Bikin Brand Lebih Dilihat</h1><Link href="/promo" className="mt-4 inline-block rounded bg-white px-4 py-2 text-xs font-bold text-slate-900">Lihat Promo</Link></div>
         </div>
 
-        <div className="mt-4 hidden grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-700 md:grid md:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-700 md:grid-cols-4">
           {[
             [Truck, "Gratis Ongkir*", "Minimal pembelian"],
             [ShieldCheck, "Pembayaran Aman", "Diproses Xendit"],
@@ -42,18 +42,17 @@ export default function Home() {
 
       <section className="mx-auto max-w-[1180px] px-4 pt-8 md:px-5">
         <div className="mb-4 flex items-end justify-between"><h2 className="text-lg font-black md:text-xl">Kategori Produk</h2><Link href="/category" className="text-xs font-bold text-slate-500">Lihat semua</Link></div>
-        <div className="grid grid-cols-3 gap-2 md:grid-cols-6 md:gap-3">
-          {categories.map(([name, image]) => <Link href={`/category?name=${encodeURIComponent(name)}`} key={name} className="group overflow-hidden rounded-lg border border-[var(--brand-border)] bg-white text-center">
-            <div className="m-1.5 aspect-square overflow-hidden rounded-md bg-[var(--brand-surface)]">
-              <img src={image} alt={name} className="h-full w-full object-cover transition group-hover:scale-105"/>
-            </div>
-            <b className="block px-1 pb-2 text-[10px] leading-4 text-[var(--brand-text)] md:text-sm">{name}</b>
+        <div className="hide-scrollbar grid grid-cols-3 gap-2 md:grid-cols-6 md:gap-3">
+          {categories.map(([name, image]) => <Link href={`/category?name=${encodeURIComponent(name)}`} key={name} className="group relative h-[118px] overflow-hidden rounded-lg md:h-[150px]">
+            <img src={image} alt={name} className="h-full w-full object-cover transition group-hover:scale-105"/>
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent"/>
+            <b className="absolute bottom-3 left-3 right-3 text-xs text-white md:text-sm">{name}</b>
           </Link>)}
         </div>
       </section>
 
       <section className="mx-auto max-w-[1180px] px-4 pt-8 md:px-5">
-        <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><h2 className="text-base font-black md:text-xl">Promo Akhir Tahun</h2><div className="hidden items-center gap-1 md:flex"><span className="countdown-digit">02</span><b>:</b><span className="countdown-digit">14</span><b>:</b><span className="countdown-digit">39</span></div></div><Link href="/promo" className="text-xs font-bold text-[var(--brand-primary)]">Lihat Semua</Link></div>
+        <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><h2 className="text-lg font-black md:text-xl">Flash Sale</h2><div className="hidden items-center gap-1 md:flex"><span className="countdown-digit">02</span><b>:</b><span className="countdown-digit">14</span><b>:</b><span className="countdown-digit">39</span></div></div><Link href="/promo" className="text-xs font-bold text-slate-500">Lihat semua</Link></div>
         <div className="hide-scrollbar flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-4">
           {products.slice(0, 4).map((p) => <ProductCard key={p.id} product={p}/>)}
         </div>
