@@ -80,7 +80,7 @@ export default function CheckoutPage() {
               </label>)}
             </div>
           </section>
-          <section className="rounded-xl bg-white p-5">
+          <section className="rounded-xl bg-white p-5 md:hidden">
             <h2 className="font-black">Voucher atau Kode Member</h2>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
               <input value={voucherCode} onChange={(e)=>setVoucherCode(e.target.value.toUpperCase())} placeholder="Kode voucher" className="h-11 rounded-lg border px-3 text-sm uppercase outline-none focus:border-red-400"/>
@@ -89,7 +89,7 @@ export default function CheckoutPage() {
             </div>
             {promoMessage && <p className={`mt-2 text-xs ${appliedVoucher ? "text-emerald-600" : "text-red-500"}`}>{promoMessage}</p>}
           </section>
-          <section className="rounded-xl bg-white p-5">
+          <section className="rounded-xl bg-white p-5 md:hidden">
             <h2 className="font-black">Metode Pembayaran</h2>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <label className={`cursor-pointer rounded-lg border p-4 ${payment === "qris" ? "border-red-500 bg-red-50" : "border-slate-200"}`}>
@@ -111,6 +111,30 @@ export default function CheckoutPage() {
           <h2 className="font-black">Ringkasan Pesanan</h2>
           <div className="mt-3 space-y-3">
             {cart.map((item) => <div key={item.key} className="flex gap-3"><img src={item.product.image} alt="" className="h-14 w-14 rounded object-cover"/><div className="min-w-0 flex-1"><p className="line-clamp-1 text-xs font-bold">{item.product.name}</p><p className="mt-1 text-[10px] text-slate-400">{item.quantity} × {formatRupiah(item.unitPrice)}</p></div></div>)}
+          </div>
+          <div className="mt-5 hidden border-t pt-4 md:block">
+            <h3 className="text-sm font-black">Voucher atau Kode Member</h3>
+            <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+              <input value={voucherCode} onChange={(e)=>setVoucherCode(e.target.value.toUpperCase())} placeholder="Kode voucher/member" className="h-10 min-w-0 rounded-lg border px-3 text-xs uppercase outline-none focus:border-red-400"/>
+              <button onClick={applyPromo} className="h-10 rounded-lg bg-slate-950 px-3 text-xs font-bold text-white">Gunakan</button>
+            </div>
+            {memberCode && <input value={memberCode} onChange={(e)=>setMemberCode(e.target.value.toUpperCase())} placeholder="Kode member alternatif" className="mt-2 h-10 w-full rounded-lg border px-3 text-xs uppercase outline-none focus:border-red-400"/>}
+            {promoMessage && <p className={`mt-2 text-xs ${appliedVoucher ? "text-emerald-600" : "text-red-500"}`}>{promoMessage}</p>}
+          </div>
+          <div className="mt-5 hidden border-t pt-4 md:block">
+            <h3 className="text-sm font-black">Metode Pembayaran</h3>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <label className={`cursor-pointer rounded-lg border p-3 ${payment === "qris" ? "border-red-500 bg-red-50" : "border-slate-200"}`}>
+                <input type="radio" name="payment-summary" checked={payment === "qris"} onChange={()=>setPayment("qris")} className="accent-red-500"/>
+                <QrCode className="mt-2 text-slate-700" size={21}/>
+                <b className="mt-1 block text-xs">QRIS</b>
+              </label>
+              <label className={`cursor-pointer rounded-lg border p-3 ${payment === "bank" ? "border-red-500 bg-red-50" : "border-slate-200"}`}>
+                <input type="radio" name="payment-summary" checked={payment === "bank"} onChange={()=>setPayment("bank")} className="accent-red-500"/>
+                <CreditCard className="mt-2 text-slate-700" size={21}/>
+                <b className="mt-1 block text-xs">Transfer Bank</b>
+              </label>
+            </div>
           </div>
           <div className="mt-5 space-y-3 border-t pt-4 text-sm"><div className="flex justify-between"><span className="text-slate-500">Subtotal</span><b>{formatRupiah(cartTotal)}</b></div><div className="flex justify-between"><span className="text-slate-500">Ongkir</span><b>{formatRupiah(shipping)}</b></div>{discount > 0 && <div className="flex justify-between"><span className="text-slate-500">Diskon</span><b className="text-emerald-600">-{formatRupiah(discount)}</b></div>}<div className="flex justify-between border-t pt-3"><b>Total</b><b className="text-xl text-red-500">{formatRupiah(total)}</b></div></div>
           <button onClick={pay} disabled={loading} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-red-500 text-sm font-bold text-white disabled:opacity-60"><ShieldCheck size={18}/>{loading ? "Memproses..." : payment === "qris" ? "Bayar QRIS dengan Xendit" : "Lanjutkan Transfer Bank"}</button>
