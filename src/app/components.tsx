@@ -88,21 +88,21 @@ export function ProductCard({ product }: { product: import("./data").Product }) 
     : 0;
 
   return (
-    <article className="product-card relative w-full min-w-0 overflow-hidden rounded-[8px] border border-[var(--brand-border)] bg-white transition">
+    <article className="product-card relative w-full min-w-0 overflow-hidden rounded-[8px] border border-[var(--brand-border)] bg-white transition sm:w-[148px] sm:justify-self-auto">
       <Link href={`/product/${product.id}`} className="block">
-        <div className="relative m-1.5 aspect-square w-[calc(100%-12px)] overflow-hidden rounded-[5px] bg-[var(--brand-surface)]">
+        <div className="relative mx-2 mt-2 aspect-square w-[calc(100%-16px)] overflow-hidden rounded-[7px] bg-[var(--brand-surface)]">
           <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
           {product.badge && (
-            <span className="absolute left-2 top-2 rounded-[4px] bg-[var(--brand-accent)] px-2 py-1 text-[9px] font-bold leading-none text-white">
+            <span className="absolute left-1.5 top-1.5 rounded-[4px] bg-[var(--brand-accent)] px-1.5 py-1 text-[8px] font-bold leading-none text-white sm:left-2 sm:top-2 sm:px-2 sm:text-[9px]">
               {product.badge}
             </span>
           )}
         </div>
-        <div className="px-2 pb-2 pt-2.5">
-          <p className="line-clamp-2 min-h-8 text-[11px] font-semibold leading-4 text-[var(--brand-text)]">
+        <div className="px-2 pb-2 pt-2">
+          <p className="line-clamp-2 min-h-8 text-[10px] font-semibold leading-4 text-[var(--brand-text)] sm:text-[11px]">
             {product.name}
           </p>
-          <p className="mt-1 text-[14px] font-black leading-5 text-[var(--brand-primary)]">
+          <p className="mt-1 text-[12px] font-black leading-4 text-[var(--brand-primary)] sm:text-[14px] sm:leading-5">
             {formatRupiah(product.price)}
           </p>
           {product.oldPrice && (
