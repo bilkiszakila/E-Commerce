@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { Product } from "./data";
+import { supabase } from "../lib/supabase/client";
 
 export type CartItem = { key: string; product: Product; quantity: number; variants: string; unitPrice: number };
 type Store = {
@@ -19,20 +20,41 @@ type Store = {
 const StoreContext = createContext<Store | null>(null);
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    if (typeof window === "undefined") return [];
-    try { return JSON.parse(localStorage.getItem("adicetak-cart") || "[]"); } catch { return []; }
-  });
-  const [loggedIn, setLoggedIn] = useState(() =>
-    typeof window !== "undefined" && localStorage.getItem("adicetak-login") === "true"
-  );
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem("adicetak-cart", JSON.stringify(cart));
-  }, [cart]);
+    try {
+      const savedCart = JSON.parse(localStorage.getItem("adicetak-cart") || "[]");
+      if (Array.isArray(savedCart)) setCart(savedCart);
+    } catch {
+      setCart([]);
+    }
+    setLoggedIn(localStorage.getItem("adicetak-login") === "true");
+    setHydrated(true);
+  }, []);
+
   useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setLoggedIn(Boolean(data.session));
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setLoggedIn(Boolean(session));
+    });
+
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem("adicetak-cart", JSON.stringify(cart));
+  }, [cart, hydrated]);
+  useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem("adicetak-login", String(loggedIn));
-  }, [loggedIn]);
+  }, [loggedIn, hydrated]);
 
   const value = useMemo<Store>(() => ({
     cart,

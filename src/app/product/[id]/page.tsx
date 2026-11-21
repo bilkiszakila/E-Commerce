@@ -37,10 +37,10 @@ function ProductContent() {
   }
 
   return (
-    <main className="mx-auto max-w-[1180px] px-4 py-6 md:px-5">
+    <main className="mx-auto max-w-295 px-4 py-6 md:px-5">
       <div className="grid gap-6 rounded-xl bg-white p-4 md:grid-cols-[1fr_1fr] md:p-6">
         <div>
-          <div className="aspect-square overflow-hidden rounded-lg bg-slate-100 md:h-[520px] md:aspect-auto">
+          <div className="aspect-square overflow-hidden rounded-lg bg-slate-100 md:h-130 md:aspect-auto">
             <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
           </div>
           <div className="mt-3 grid grid-cols-4 gap-2">

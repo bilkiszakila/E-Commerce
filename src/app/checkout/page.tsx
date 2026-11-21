@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { CreditCard, MapPin, Navigation, QrCode, ShieldCheck, Tag } from "lucide-react";
 import { useStore } from "../store";
 import { formatRupiah } from "../components";
+import { findVoucher } from "../../lib/supabase/data";
+import { supabase } from "../../lib/supabase/client";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -25,14 +27,16 @@ export default function CheckoutPage() {
     : 0;
   const total = Math.max(0, cartTotal + shipping - discount);
 
-  function applyPromo() {
+  async function applyPromo() {
     const code = (voucherCode || memberCode).trim().toUpperCase();
     if (!code) { setPromoMessage("Masukkan voucher atau kode member."); return; }
-    let voucher: { code: string; type: "fixed"|"percent"; value: number } | null = null;
+    let voucher: { code: string; type: "fixed"|"percent"; value: number } | null = await findVoucher(code);
+    if (!voucher) {
     try {
       const stored = JSON.parse(localStorage.getItem("adicetak-vouchers") || "[]") as Array<{ code:string; type:"fixed"|"percent"; value:number }>;
       voucher = stored.find((item) => item.code.toUpperCase() === code) || null;
     } catch {}
+    }
     if (!voucher) { setAppliedVoucher(null); setPromoMessage("Kode tidak ditemukan atau tidak aktif."); return; }
     setAppliedVoucher(voucher);
     setPromoMessage(`Kode ${voucher.code} berhasil diterapkan.`);
