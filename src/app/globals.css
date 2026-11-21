@@ -3,9 +3,9 @@
 @theme {
   --color-brand-primary: #1842D2;
   --color-brand-secondary: #F1F4FD;
-  --color-brand-accent: #F1F4FD;
+  --color-brand-accent: #FF7401;
   --color-brand-neutral: #FFFFFF;
-  --color-brand-surface: #E5F5F7;
+  --color-brand-surface: #F5F5F7;
   --color-brand-text: #172338;
   --color-brand-border: #C6CEDC;
   --color-brand-success: #16694D;
@@ -15,9 +15,9 @@
 :root {
   --brand-primary: #1842D2;
   --brand-secondary: #F1F4FD;
-  --brand-accent: #F1F4FD;
+  --brand-accent: #FF7401;
   --brand-neutral: #FFFFFF;
-  --brand-surface: #E5F5F7;
+  --brand-surface: #F5F5F7;
   --brand-text: #172338;
   --brand-border: #C6CEDC;
   --brand-success: #16694D;
