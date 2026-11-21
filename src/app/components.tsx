@@ -34,7 +34,7 @@ export function ProductCard({ product, className = "" }: { product: typeof produ
 export function Header() {
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const { cartCount, loggedIn } = useStore();
+  const { cartCount, loggedIn, isAdmin } = useStore();
 
   return (
     <header className="sticky top-0 z-50">
@@ -46,7 +46,7 @@ export function Header() {
           </div>
           <div className="flex items-center gap-5">
             <Link href="/promo">Promo</Link><Link href="/account/orders">Lacak Pesanan</Link>
-            <Link href="/admin">Admin</Link>
+            {isAdmin && <Link href="/admin" className="font-bold text-red-500">Admin</Link>}
             <button className="flex items-center gap-1">Bahasa Indonesia <ChevronDown size={12} /></button>
           </div>
         </div>

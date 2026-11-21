@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { useStore } from "../store";
 import { supabase } from "../../lib/supabase/client";
+import { getIsAdmin } from "../../lib/supabase/auth";
 
 function LoginForm() {
   const router = useRouter();
@@ -22,7 +23,17 @@ function LoginForm() {
       return;
     }
     setLoggedIn(true);
-    router.push(search.get("next") || "/account");
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user.id;
+    if (userId) {
+      if (await getIsAdmin(userId)) {
+        router.replace("/admin");
+        return;
+      }
+    }
+
+    router.replace(search.get("next") || "/account");
   }
   return <main className="mx-auto max-w-[1180px] px-4 py-10 md:px-5"><div className="mx-auto max-w-md rounded-xl bg-white p-6 shadow-sm">
     <h1 className="text-2xl font-black">Masuk ke Adi Cetak</h1><p className="mt-2 text-sm text-slate-500">Masuk untuk melanjutkan transaksi dengan aman.</p>

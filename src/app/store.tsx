@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { Product } from "./data";
 import { supabase } from "../lib/supabase/client";
+import { getIsAdmin } from "../lib/supabase/auth";
 
 export type CartItem = { key: string; product: Product; quantity: number; variants: string; unitPrice: number };
 type Store = {
@@ -14,6 +15,7 @@ type Store = {
   cartCount: number;
   cartTotal: number;
   loggedIn: boolean;
+  isAdmin: boolean;
   setLoggedIn: (value: boolean) => void;
 };
 
@@ -22,6 +24,7 @@ const StoreContext = createContext<Store | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -36,12 +39,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setLoggedIn(Boolean(data.session));
-    });
+    async function syncAuthSession(session: Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]) {
+      setLoggedIn(Boolean(session));
+      setIsAdmin(false);
+      if (!session) return;
+
+      setIsAdmin(await getIsAdmin(session.user.id));
+    }
+
+    supabase.auth.getSession().then(({ data }) => syncAuthSession(data.session));
 
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setLoggedIn(Boolean(session));
+      syncAuthSession(session);
     });
 
     return () => data.subscription.unsubscribe();
@@ -72,8 +81,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     cartCount: cart.reduce((n, i) => n + i.quantity, 0),
     cartTotal: cart.reduce((n, i) => n + i.unitPrice * i.quantity, 0),
     loggedIn,
+    isAdmin,
     setLoggedIn,
-  }), [cart, loggedIn]);
+  }), [cart, loggedIn, isAdmin]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
