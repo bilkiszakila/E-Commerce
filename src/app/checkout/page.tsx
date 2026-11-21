@@ -1,16 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CreditCard, MapPin, Navigation, QrCode, ShieldCheck, Tag } from "lucide-react";
 import { useStore } from "../store";
 import { formatRupiah } from "../components";
-import { findVoucher } from "../../lib/supabase/data";
+import { findVoucher, getStoreSettings, ShippingOption } from "../../lib/supabase/data";
 import { supabase } from "../../lib/supabase/client";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, cartTotal, loggedIn, clearCart } = useStore();
+  const { cart, cartTotal, clearCart } = useStore();
   const [courier, setCourier] = useState("JNE Reg");
   const [payment, setPayment] = useState<"qris"|"bank">("qris");
   const [voucherCode, setVoucherCode] = useState("");
@@ -19,7 +19,18 @@ export default function CheckoutPage() {
   const [promoMessage, setPromoMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", province: "DKI Jakarta", city: "Jakarta Selatan", district: "", address: "", postcode: "" });
-  const shipping = courier === "Ambil Sendiri" ? 0 : courier === "J&T Express" ? 19000 : 17000;
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([
+    { name: "JNE Reg", description: "Estimasi 2–3 hari", price: 17000 },
+    { name: "J&T Express", description: "Estimasi 1–2 hari", price: 19000 },
+    { name: "Ambil Sendiri", description: "Semarang Store", price: 0 },
+  ]);
+  useEffect(() => {
+    getStoreSettings().then((settings) => {
+      if (settings?.shippingOptions.length) setShippingOptions(settings.shippingOptions);
+    });
+  }, []);
+  const selectedShipping = shippingOptions.find((option) => option.name === courier) || shippingOptions[0];
+  const shipping = selectedShipping?.price || 0;
   const discount = appliedVoucher
     ? appliedVoucher.type === "percent"
       ? Math.round(cartTotal * appliedVoucher.value / 100)
@@ -30,26 +41,74 @@ export default function CheckoutPage() {
   async function applyPromo() {
     const code = (voucherCode || memberCode).trim().toUpperCase();
     if (!code) { setPromoMessage("Masukkan voucher atau kode member."); return; }
-    let voucher: { code: string; type: "fixed"|"percent"; value: number } | null = await findVoucher(code);
-    if (!voucher) {
-    try {
-      const stored = JSON.parse(localStorage.getItem("adicetak-vouchers") || "[]") as Array<{ code:string; type:"fixed"|"percent"; value:number }>;
-      voucher = stored.find((item) => item.code.toUpperCase() === code) || null;
-    } catch {}
-    }
+    const voucher = await findVoucher(code);
     if (!voucher) { setAppliedVoucher(null); setPromoMessage("Kode tidak ditemukan atau tidak aktif."); return; }
+    if ((voucher.minimum_purchase || 0) > cartTotal) {
+      setAppliedVoucher(null);
+      setPromoMessage(`Minimal belanja ${formatRupiah(voucher.minimum_purchase)}.`);
+      return;
+    }
+    if (voucher.usage_limit !== null && voucher.used_count >= voucher.usage_limit) {
+      setAppliedVoucher(null);
+      setPromoMessage("Batas penggunaan voucher sudah tercapai.");
+      return;
+    }
     setAppliedVoucher(voucher);
     setPromoMessage(`Kode ${voucher.code} berhasil diterapkan.`);
   }
 
   async function pay() {
-    if (!loggedIn) { router.push("/login?next=/checkout"); return; }
     if (!form.name || !form.phone || !form.address || !form.district) { alert("Lengkapi nama, nomor telepon, kecamatan, dan alamat penerima."); return; }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 900));
-    clearCart();
     const orderId = `AC-${Date.now().toString().slice(-8)}`;
-    localStorage.setItem("adicetak-last-order", JSON.stringify({ id: orderId, total, status: payment === "bank" ? "Menunggu Konfirmasi Transfer" : "Menunggu Pembayaran", date: new Date().toISOString(), courier, payment, voucher: appliedVoucher?.code || null }));
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user.id || null;
+
+    const { error: orderError } = await supabase.from("orders").insert({
+      id: orderId,
+      user_id: userId,
+      status: "pending",
+      courier,
+      payment,
+      subtotal: cartTotal,
+      shipping,
+      discount,
+      total,
+      voucher_code: appliedVoucher?.code || null,
+      shipping_address: {
+        name: form.name,
+        phone: form.phone,
+        province: form.province,
+        city: form.city,
+        district: form.district,
+        address: form.address,
+        postcode: form.postcode,
+      },
+    });
+    if (orderError) {
+      setLoading(false);
+      alert(`Pesanan gagal dibuat: ${orderError.message}`);
+      return;
+    }
+
+    const { error: itemsError } = await supabase.from("order_items").insert(
+      cart.map((item) => ({
+        order_id: orderId,
+        product_id: item.product.id,
+        name: item.product.name,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        variants: item.variants,
+      }))
+    );
+    if (itemsError) {
+      await supabase.from("orders").delete().eq("id", orderId);
+      setLoading(false);
+      alert(`Item pesanan gagal disimpan: ${itemsError.message}`);
+      return;
+    }
+
+    clearCart();
     router.push(`/payment/${orderId}`);
   }
 
@@ -78,9 +137,9 @@ export default function CheckoutPage() {
           <section className="rounded-xl bg-white p-5">
             <h2 className="font-black">Pilih Pengiriman</h2>
             <div className="mt-3 space-y-2">
-              {[["JNE Reg","Estimasi 2–3 hari",17000],["J&T Express","Estimasi 1–2 hari",19000],["Ambil Sendiri","Semarang Store",0]].map(([name,desc,price]) => <label key={name as string} className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 ${courier === name ? "border-red-500 bg-red-50" : "border-slate-200"}`}>
-                <input type="radio" name="courier" checked={courier === name} onChange={() => setCourier(name as string)} className="accent-red-500"/>
-                <div className="flex-1"><b className="block text-sm">{name}</b><span className="text-xs text-slate-500">{desc}</span></div><b className="text-sm">{price === 0 ? "Gratis" : formatRupiah(price as number)}</b>
+              {shippingOptions.map((option) => <label key={option.name} className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 ${courier === option.name ? "border-red-500 bg-red-50" : "border-slate-200"}`}>
+                <input type="radio" name="courier" checked={courier === option.name} onChange={() => setCourier(option.name)} className="accent-red-500"/>
+                <div className="flex-1"><b className="block text-sm">{option.name}</b><span className="text-xs text-slate-500">{option.description}</span></div><b className="text-sm">{option.price === 0 ? "Gratis" : formatRupiah(option.price)}</b>
               </label>)}
             </div>
           </section>

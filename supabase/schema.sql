@@ -83,8 +83,8 @@ create table if not exists public.wishlist_items (
 
 create table if not exists public.orders (
   id text primary key,
-  user_id uuid not null references auth.users(id),
-  status text not null default 'Menunggu Pembayaran',
+  user_id uuid references auth.users(id),
+  status text not null default 'pending',
   courier text,
   payment text,
   subtotal bigint not null,
@@ -109,6 +109,19 @@ create table if not exists public.order_items (
 create table if not exists public.settings (
   key text primary key,
   value jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.store_settings (
+  id smallint primary key default 1 check (id = 1),
+  bank_name text not null default 'BCA',
+  bank_account_name text not null default 'PT Adi Cetak',
+  bank_account_number text not null default '1234567890',
+  shipping_options jsonb not null default '[
+    {"name":"JNE Reg","description":"Estimasi 2–3 hari","price":17000},
+    {"name":"J&T Express","description":"Estimasi 1–2 hari","price":19000},
+    {"name":"Ambil Sendiri","description":"Semarang Store","price":0}
+  ]'::jsonb,
   updated_at timestamptz not null default now()
 );
 
@@ -162,6 +175,7 @@ alter table public.wishlist_items enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_items enable row level security;
 alter table public.settings enable row level security;
+alter table public.store_settings enable row level security;
 
 drop policy if exists "Public read categories" on public.categories;
 drop policy if exists "Public read products" on public.products;
@@ -190,6 +204,13 @@ drop policy if exists "Admins update all orders" on public.orders;
 drop policy if exists "Admins fallback read all orders" on public.orders;
 drop policy if exists "Admins fallback update all orders" on public.orders;
 drop policy if exists "Admins read all order items" on public.order_items;
+drop policy if exists "Public read store settings" on public.store_settings;
+drop policy if exists "Admins insert store settings" on public.store_settings;
+drop policy if exists "Admins update store settings" on public.store_settings;
+drop policy if exists "Public insert guest orders" on public.orders;
+drop policy if exists "Public insert guest order items" on public.order_items;
+drop policy if exists "Public read orders by id" on public.orders;
+drop policy if exists "Public read order items by id" on public.order_items;
 
 drop policy if exists "Public read promo banner files" on storage.objects;
 drop policy if exists "Authenticated upload promo banner files" on storage.objects;
@@ -252,6 +273,10 @@ grant select, insert, update, delete on public.wishlist_items to authenticated;
 grant select, insert, update on public.orders to authenticated;
 grant select, insert, update, delete on public.order_items to authenticated;
 grant select, insert, update, delete on public.settings to authenticated;
+grant select on public.store_settings to anon, authenticated;
+grant insert, update on public.store_settings to authenticated;
+grant insert, select on public.orders to anon, authenticated;
+grant insert, select on public.order_items to anon, authenticated;
 
 create policy "Admins manage categories" on public.categories for all using (public.is_admin()) with check (public.is_admin());
 create policy "Admins manage products" on public.products for all using (public.is_admin()) with check (public.is_admin());
@@ -261,6 +286,15 @@ create policy "Admins manage settings" on public.settings for all using (public.
 create policy "Admins read all orders" on public.orders for select using (public.is_admin());
 create policy "Admins update all orders" on public.orders for update using (public.is_admin()) with check (public.is_admin());
 create policy "Admins read all order items" on public.order_items for select using (public.is_admin());
+
+create policy "Public read store settings" on public.store_settings for select using (true);
+create policy "Admins insert store settings" on public.store_settings for insert with check (public.is_admin());
+create policy "Admins update store settings" on public.store_settings for update using (public.is_admin()) with check (public.is_admin());
+
+create policy "Public insert guest orders" on public.orders for insert with check (true);
+create policy "Public insert guest order items" on public.order_items for insert with check (true);
+create policy "Public read orders by id" on public.orders for select using (true);
+create policy "Public read order items by id" on public.order_items for select using (true);
 
 create policy "Admins fallback read all orders" on public.orders for select using (
   exists (
@@ -344,3 +378,24 @@ on conflict (id) do update set
 insert into public.vouchers (code, type, value, label)
 values ('ADICETAK10', 'percent', 10, 'Diskon 10%')
 on conflict (code) do update set type = excluded.type, value = excluded.value, label = excluded.label;
+
+alter table public.orders alter column user_id drop not null;
+alter table public.orders alter column status set default 'pending';
+
+insert into public.store_settings (
+  id,
+  bank_name,
+  bank_account_name,
+  bank_account_number,
+  shipping_options
+) values (
+  1,
+  'BCA',
+  'PT Adi Cetak',
+  '1234567890',
+  '[
+    {"name":"JNE Reg","description":"Estimasi 2–3 hari","price":17000},
+    {"name":"J&T Express","description":"Estimasi 1–2 hari","price":19000},
+    {"name":"Ambil Sendiri","description":"Semarang Store","price":0}
+  ]'::jsonb
+) on conflict (id) do nothing;

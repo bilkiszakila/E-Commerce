@@ -103,10 +103,50 @@ export async function getProductByIdOrSlug(value: string): Promise<Product | nul
 export async function findVoucher(code: string) {
   const { data, error } = await supabase
     .from("vouchers")
-    .select("code,type,value")
+    .select("code,type,value,minimum_purchase,usage_limit,used_count")
     .eq("active", true)
     .eq("code", code)
     .maybeSingle();
 
-  return error ? null : data;
+  if (error) {
+    console.error("Gagal memuat voucher:", error.message);
+    return null;
+  }
+  return data;
+}
+
+export type ShippingOption = {
+  name: string;
+  description: string;
+  price: number;
+};
+
+export type StoreSettings = {
+  bankName: string;
+  bankAccountName: string;
+  bankAccountNumber: string;
+  shippingOptions: ShippingOption[];
+};
+
+export async function getStoreSettings(): Promise<StoreSettings | null> {
+  const { data, error } = await supabase
+    .from("store_settings")
+    .select("bank_name,bank_account_name,bank_account_number,shipping_options")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Gagal memuat pengaturan toko:", error.message);
+    return null;
+  }
+  if (!data) return null;
+
+  return {
+    bankName: data.bank_name,
+    bankAccountName: data.bank_account_name,
+    bankAccountNumber: data.bank_account_number,
+    shippingOptions: Array.isArray(data.shipping_options)
+      ? data.shipping_options
+      : [],
+  };
 }

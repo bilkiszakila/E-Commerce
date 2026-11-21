@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { Filter, Search, ShoppingBag } from "lucide-react";
 import { supabase } from "../../../lib/supabase/client";
 
-type OrderRow = { id: string; status: string; courier: string|null; payment: string|null; total: number; created_at: string };
-const statuses = ["Semua", "Menunggu Pembayaran", "Diproses", "Dikirim", "Selesai", "Dibatalkan", "Retur"];
+type OrderItemRow = { id: string; name: string; quantity: number; unit_price: number; variants: string };
+type OrderRow = { id: string; status: string; courier: string|null; payment: string|null; total: number; created_at: string; order_items: OrderItemRow[] };
+const statuses = ["Semua", "pending", "Menunggu Pembayaran", "Diproses", "Dikirim", "Selesai", "Dibatalkan", "Retur"];
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -16,7 +17,10 @@ export default function AdminOrdersPage() {
   const [message, setMessage] = useState("");
 
   async function load() {
-    const { data, error } = await supabase.from("orders").select("id,status,courier,payment,total,created_at").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("orders")
+      .select("id,status,courier,payment,total,created_at,order_items(id,name,quantity,unit_price,variants)")
+      .order("created_at", { ascending: false });
     if (error) setMessage(error.message); else setOrders(data || []);
   }
   useEffect(() => { load(); }, []);
@@ -39,7 +43,7 @@ export default function AdminOrdersPage() {
     <main className="p-5 md:p-8">
       <div className="mb-5 flex items-center justify-between"><h1 className="text-2xl font-black">Pesanan</h1><span className="rounded-lg border bg-white px-3 py-2 text-xs font-bold">{visible.length} pesanan</span></div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {statuses.map((item) => <button key={item} onClick={() => setStatus(item)} className={`h-9 rounded-lg px-3 text-xs ${status === item ? "bg-blue-50 font-bold text-[var(--brand-primary)]" : "border bg-white"}`}>{item === "Semua" ? `Semua (${orders.length})` : item}</button>)}
+        {statuses.map((item) => <button key={item} onClick={() => setStatus(item)} className={`h-9 rounded-lg px-3 text-xs ${status === item ? "bg-blue-50 font-bold text-[var(--brand-primary)]" : "border bg-white"}`}>{item === "Semua" ? `Semua (${orders.length})` : item === "pending" ? "Menunggu Pembayaran" : item}</button>)}
       </div>
       <div className="mb-4 flex flex-wrap gap-2 rounded-xl border bg-white p-3">
         <Filter size={16} className="mt-2 text-slate-400"/>
@@ -50,7 +54,7 @@ export default function AdminOrdersPage() {
       {message && <p className="mb-3 rounded-lg bg-red-50 p-3 text-xs font-bold text-red-600">{message}</p>}
       <section className="overflow-hidden rounded-xl border bg-white">
         {visible.length === 0 ? <div className="py-14 text-center"><ShoppingBag className="mx-auto text-slate-300" size={36}/><p className="mt-3 text-sm text-slate-500">Belum ada pesanan.</p></div> :
-        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b bg-slate-50 text-xs text-slate-500"><tr><th className="p-4"><input type="checkbox" checked={selected.length === visible.length} onChange={(e) => setSelected(e.target.checked ? visible.map((item) => item.id) : [])}/></th><th>Pesanan</th><th>Tanggal</th><th>Status</th><th>Total</th><th className="p-4">Origin</th></tr></thead><tbody>{visible.map((order) => <tr key={order.id} className="border-b last:border-0"><td className="p-4"><input type="checkbox" checked={selected.includes(order.id)} onChange={(e) => setSelected((old) => e.target.checked ? [...old, order.id] : old.filter((id) => id !== order.id))}/></td><td className="py-4 font-bold">{order.id}</td><td>{new Date(order.created_at).toLocaleDateString("id-ID")}</td><td><select value={order.status} onChange={(e) => updateStatus(order.id, e.target.value)} className="h-9 rounded-full border px-3 text-xs font-bold">{statuses.filter((item) => item !== "Semua").map((item) => <option key={item}>{item}</option>)}</select></td><td className="font-bold">Rp {order.total.toLocaleString("id-ID")}</td><td className="p-4">{order.payment || "Direct"}</td></tr>)}</tbody></table></div>}
+        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b bg-slate-50 text-xs text-slate-500"><tr><th className="p-4"><input type="checkbox" checked={selected.length === visible.length} onChange={(e) => setSelected(e.target.checked ? visible.map((item) => item.id) : [])}/></th><th>Pesanan</th><th>Tanggal</th><th>Status</th><th>Total</th><th className="p-4">Origin</th></tr></thead><tbody>{visible.map((order) => <tr key={order.id} className="border-b last:border-0"><td className="p-4"><input type="checkbox" checked={selected.includes(order.id)} onChange={(e) => setSelected((old) => e.target.checked ? [...old, order.id] : old.filter((id) => id !== order.id))}/></td><td className="py-4"><b>{order.id}</b>{order.order_items.map((item) => <span key={item.id} className="mt-1 block text-[11px] font-normal text-slate-500">{item.quantity}× {item.name}</span>)}</td><td>{new Date(order.created_at).toLocaleDateString("id-ID")}</td><td><select value={order.status} onChange={(e) => updateStatus(order.id, e.target.value)} className="h-9 rounded-full border px-3 text-xs font-bold">{statuses.filter((item) => item !== "Semua").map((item) => <option key={item} value={item}>{item === "pending" ? "Menunggu Pembayaran" : item}</option>)}</select></td><td className="font-bold">Rp {order.total.toLocaleString("id-ID")}</td><td className="p-4">{order.payment || "Direct"}</td></tr>)}</tbody></table></div>}
       </section>
     </main>
   );

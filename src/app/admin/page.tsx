@@ -36,7 +36,7 @@ export default function AdminPage() {
         products: productsResult.count || 0,
         vouchers: vouchersResult.count || 0,
         customers: customersResult.count || 0,
-        pending: orders.filter((item) => item.status === "Menunggu Pembayaran").length,
+        pending: orders.filter((item) => item.status === "pending" || item.status === "Menunggu Pembayaran").length,
         processing: orders.filter((item) => ["Diproses", "Dikirim"].includes(item.status)).length,
         cancelled: orders.filter((item) => item.status === "Dibatalkan").length,
         returned: orders.filter((item) => item.status === "Retur").length,

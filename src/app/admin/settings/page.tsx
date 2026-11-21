@@ -1,22 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ImagePlus, Save } from "lucide-react";
+import { supabase } from "../../../lib/supabase/client";
+import { getStoreSettings, ShippingOption } from "../../../lib/supabase/data";
 
 type BankSettings = { bank: string; accountName: string; accountNumber: string };
-type VoucherSettings = { code: string; type: "fixed" | "percent"; value: number; label: string }[];
 type PromoBannerSettings = { dataUrl: string; name: string };
 const PROMO_BANNER_SIZE = { width: 1180, height: 290 };
 
 export default function AdminSettingsPage() {
-  const [bank, setBank] = useState<BankSettings>(() => {
-    if (typeof window === "undefined") return { bank: "BCA", accountName: "PT Adi Cetak", accountNumber: "1234567890" };
-    try { return JSON.parse(localStorage.getItem("adicetak-bank") || "null") || { bank: "BCA", accountName: "PT Adi Cetak", accountNumber: "1234567890" }; } catch { return { bank: "BCA", accountName: "PT Adi Cetak", accountNumber: "1234567890" }; }
-  });
-  const [vouchers, setVouchers] = useState<VoucherSettings>(() => {
-    if (typeof window === "undefined") return [{ code: "ADICETAK10", type: "percent", value: 10, label: "Diskon 10%" }];
-    try { return JSON.parse(localStorage.getItem("adicetak-vouchers") || "null") || [{ code: "ADICETAK10", type: "percent", value: 10, label: "Diskon 10%" }]; } catch { return [{ code: "ADICETAK10", type: "percent", value: 10, label: "Diskon 10%" }]; }
-  });
+  const [bank, setBank] = useState<BankSettings>({ bank: "BCA", accountName: "PT Adi Cetak", accountNumber: "1234567890" });
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([
+    { name: "JNE Reg", description: "Estimasi 2–3 hari", price: 17000 },
+    { name: "J&T Express", description: "Estimasi 1–2 hari", price: 19000 },
+    { name: "Ambil Sendiri", description: "Semarang Store", price: 0 },
+  ]);
   const [promoBanner, setPromoBanner] = useState<PromoBannerSettings>(() => {
     if (typeof window === "undefined") return { dataUrl: "", name: "" };
     try { return JSON.parse(localStorage.getItem("adicetak-promo-banner") || "null") || { dataUrl: "", name: "" }; } catch { return { dataUrl: "", name: "" }; }
@@ -24,10 +23,28 @@ export default function AdminSettingsPage() {
   const [bannerError, setBannerError] = useState("");
   const [saved, setSaved] = useState(false);
 
-  function save() {
-    localStorage.setItem("adicetak-bank", JSON.stringify(bank));
-    localStorage.setItem("adicetak-vouchers", JSON.stringify(vouchers));
+  useEffect(() => {
+    getStoreSettings().then((settings) => {
+      if (!settings) return;
+      setBank({ bank: settings.bankName, accountName: settings.bankAccountName, accountNumber: settings.bankAccountNumber });
+      if (settings.shippingOptions.length) setShippingOptions(settings.shippingOptions);
+    });
+  }, []);
+
+  async function save() {
     localStorage.setItem("adicetak-promo-banner", JSON.stringify(promoBanner));
+    const { error } = await supabase.from("store_settings").upsert({
+      id: 1,
+      bank_name: bank.bank,
+      bank_account_name: bank.accountName,
+      bank_account_number: bank.accountNumber,
+      shipping_options: shippingOptions,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "id" });
+    if (error) {
+      alert(error.message);
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 1800);
   }
@@ -61,9 +78,6 @@ export default function AdminSettingsPage() {
     reader.readAsDataURL(file);
   }
 
-  function updateVoucher(index: number, patch: Partial<VoucherSettings[number]>) {
-    setVouchers((old) => old.map((item, i) => i === index ? { ...item, ...patch } : item));
-  }
 
   return (
     <main className="mx-auto max-w-[1180px] px-4 py-8 md:px-5">
@@ -77,17 +91,17 @@ export default function AdminSettingsPage() {
             <Field label="Nomor Rekening" value={bank.accountNumber} onChange={(accountNumber) => setBank({ ...bank, accountNumber })}/>
           </div>
         </section>
-        <section id="vouchers" className="rounded-xl bg-white p-5">
-          <h2 className="font-black">Voucher & Kode Member</h2>
+        <section className="rounded-xl bg-white p-5">
+          <h2 className="font-black">Opsi Ongkos Kirim</h2>
           <div className="mt-4 space-y-3">
-            {vouchers.map((voucher, index) => (
-              <div key={index} className="grid gap-2 rounded-lg border p-3 sm:grid-cols-[1fr_110px_80px]">
-                <input aria-label="Kode voucher" value={voucher.code} onChange={(e)=>updateVoucher(index,{code:e.target.value.toUpperCase()})} className="h-10 rounded border px-3 text-sm font-bold uppercase"/>
-                <select aria-label="Jenis voucher" value={voucher.type} onChange={(e)=>updateVoucher(index,{type:e.target.value as "fixed"|"percent"})} className="h-10 rounded border px-2 text-xs"><option value="fixed">Nominal</option><option value="percent">Persen</option></select>
-                <input aria-label="Nilai voucher" type="number" value={voucher.value} onChange={(e)=>updateVoucher(index,{value:Number(e.target.value)||0})} className="h-10 rounded border px-3 text-sm"/>
+            {shippingOptions.map((option, index) => (
+              <div key={option.name} className="grid gap-2 rounded-lg border p-3 sm:grid-cols-[1fr_1fr_100px]">
+                <input aria-label="Nama kurir" value={option.name} onChange={(e)=>setShippingOptions((old)=>old.map((item,i)=>i===index?{...item,name:e.target.value}:item))} className="h-10 rounded border px-3 text-sm"/>
+                <input aria-label="Deskripsi ongkir" value={option.description} onChange={(e)=>setShippingOptions((old)=>old.map((item,i)=>i===index?{...item,description:e.target.value}:item))} className="h-10 rounded border px-3 text-sm"/>
+                <input aria-label="Tarif ongkir" type="number" value={option.price} onChange={(e)=>setShippingOptions((old)=>old.map((item,i)=>i===index?{...item,price:Number(e.target.value)||0}:item))} className="h-10 rounded border px-3 text-sm"/>
               </div>
             ))}
-            <button onClick={()=>setVouchers((old)=>[...old,{code:"",type:"fixed",value:0,label:"Voucher baru"}])} className="h-10 w-full rounded-lg border border-dashed text-xs font-bold text-slate-500">+ Tambah Voucher</button>
+            <button onClick={()=>setShippingOptions((old)=>[...old,{name:"Kurir Baru",description:"Estimasi pengiriman",price:0}])} className="h-10 w-full rounded-lg border border-dashed text-xs font-bold text-slate-500">+ Tambah Opsi Ongkir</button>
           </div>
         </section>
         <section className="rounded-xl bg-white p-5 md:col-span-2">
