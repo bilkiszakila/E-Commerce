@@ -32,7 +32,7 @@ export default function CartPage() {
               <p className="mt-1 text-xs text-slate-500">{item.variants}</p>
               <div className="mt-3 flex items-end justify-between">
                 <div className="flex items-center rounded border"><button onClick={() => updateQuantity(item.key, item.quantity-1)} className="grid h-8 w-8 place-items-center"><Minus size={13}/></button><span className="w-8 text-center text-xs">{item.quantity}</span><button onClick={() => updateQuantity(item.key, item.quantity+1)} className="grid h-8 w-8 place-items-center"><Plus size={13}/></button></div>
-                <b className="text-red-500">{formatRupiah(item.unitPrice*item.quantity)}</b>
+                <b className="text-red-500">{formatRupiah(item.unitPrice*item.quantity+(item.fixedExtra || 0))}</b>
               </div>
             </div>
             <button onClick={() => removeItem(item.key)} className="h-fit text-slate-400"><Trash2 size={17}/></button>

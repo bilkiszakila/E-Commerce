@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Package, Plus, Save, Trash2 } from "lucide-react";
 import { supabase } from "../../../lib/supabase/client";
-import type { ProductVariations, VariationOption } from "../../data";
+import type { ProductVariations, VariationGroup, VariationOption } from "../../data";
+import { normalizeVariations } from "../../../lib/supabase/data";
 
 type ProductRow = {
   id: string;
@@ -19,6 +20,10 @@ type ProductRow = {
   discount_percent: number;
   discount_active: boolean;
   stock: number;
+  pricing_unit: "pcs" | "meter";
+  min_order: number;
+  allow_custom_size: boolean;
+  min_area_sqm: number;
   gallery: string[];
   variations: ProductVariations;
   rating: number;
@@ -29,7 +34,7 @@ type ProductRow = {
 const emptyProduct: ProductRow = {
   id: "", name: "", slug: "", category: "", price: 0, old_price: null,
   image: "", thumbnail_url: "", badge: "", discount_percent: 0, discount_active: false, stock: 0,
-  gallery: [], variations: { materials: [], sizes: [], finishings: [] }, rating: 0, sold: 0, active: true,
+  gallery: [], variations: { groups: [] }, pricing_unit: "pcs", min_order: 1, allow_custom_size: false, min_area_sqm: 1, rating: 0, sold: 0, active: true,
 };
 
 export default function AdminProductsPage() {
@@ -53,12 +58,12 @@ export default function AdminProductsPage() {
   function edit(product: ProductRow) {
     setForm({
       ...product,
+      pricing_unit: product.pricing_unit || "pcs",
+      min_order: product.min_order || 1,
+      allow_custom_size: product.allow_custom_size || false,
+      min_area_sqm: product.min_area_sqm || 1,
       gallery: Array.isArray(product.gallery) ? product.gallery : [],
-      variations: {
-        materials: product.variations?.materials || [],
-        sizes: product.variations?.sizes || [],
-        finishings: product.variations?.finishings || [],
-      },
+      variations: normalizeVariations(product.variations),
     });
     setEditing(true);
   }
@@ -110,32 +115,60 @@ export default function AdminProductsPage() {
     }
   }
 
-  function updateVariation(category: keyof ProductVariations, index: number, patch: Partial<VariationOption>) {
+  function addVariationGroup() {
+    setForm((old) => ({
+      ...old,
+      variations: { groups: [...old.variations.groups, { group_name: "", options: [] }] },
+    }));
+  }
+
+  function updateVariationGroup(groupIndex: number, patch: Partial<VariationGroup>) {
     setForm((old) => ({
       ...old,
       variations: {
-        ...old.variations,
-        [category]: old.variations[category].map((item, i) => i === index ? { ...item, ...patch } : item),
+        groups: old.variations.groups.map((group, index) => index === groupIndex ? { ...group, ...patch } : group),
       },
     }));
   }
 
-  function addVariation(category: keyof ProductVariations) {
+  function removeVariationGroup(groupIndex: number) {
+    setForm((old) => ({
+      ...old,
+      variations: { groups: old.variations.groups.filter((_, index) => index !== groupIndex) },
+    }));
+  }
+
+  function addVariationOption(groupIndex: number) {
     setForm((old) => ({
       ...old,
       variations: {
-        ...old.variations,
-        [category]: [...old.variations[category], { name: "", extra_price: 0 }],
+        groups: old.variations.groups.map((group, index) =>
+          index === groupIndex ? { ...group, options: [...group.options, { name: "", extra_price: 0, charge_type: "per_unit" }] } : group
+        ),
       },
     }));
   }
 
-  function removeVariation(category: keyof ProductVariations, index: number) {
+  function updateVariationOption(groupIndex: number, optionIndex: number, patch: Partial<VariationOption>) {
     setForm((old) => ({
       ...old,
       variations: {
-        ...old.variations,
-        [category]: old.variations[category].filter((_, i) => i !== index),
+        groups: old.variations.groups.map((group, index) =>
+          index === groupIndex
+            ? { ...group, options: group.options.map((option, i) => i === optionIndex ? { ...option, ...patch } : option) }
+            : group
+        ),
+      },
+    }));
+  }
+
+  function removeVariationOption(groupIndex: number, optionIndex: number) {
+    setForm((old) => ({
+      ...old,
+      variations: {
+        groups: old.variations.groups.map((group, index) =>
+          index === groupIndex ? { ...group, options: group.options.filter((_, i) => i !== optionIndex) } : group
+        ),
       },
     }));
   }
@@ -159,6 +192,10 @@ export default function AdminProductsPage() {
       discount_percent: form.discount_percent,
       discount_active: form.discount_active,
       stock: form.stock,
+      pricing_unit: form.pricing_unit,
+      min_order: form.pricing_unit === "pcs" ? Math.max(1, form.min_order) : 1,
+      allow_custom_size: form.pricing_unit === "meter" ? form.allow_custom_size : false,
+      min_area_sqm: form.pricing_unit === "meter" ? Math.max(0.01, form.min_area_sqm) : 1,
       gallery: form.gallery,
       variations: form.variations,
       rating: form.rating,
@@ -202,6 +239,21 @@ export default function AdminProductsPage() {
               </select>
             </label>
             <div className="grid grid-cols-2 gap-3">
+              <label className="block text-xs font-bold text-slate-600">Mode Harga
+                <select value={form.pricing_unit} onChange={(e)=>setForm({...form,pricing_unit:e.target.value as "pcs"|"meter"})} className="mt-2 h-11 w-full rounded-lg border px-3 text-sm">
+                  <option value="pcs">Per Pcs</option><option value="meter">Per Meter / Large Format</option>
+                </select>
+              </label>
+              {form.pricing_unit === "pcs" ? (
+                <Field label="Minimal Order (pcs)" type="number" value={String(form.min_order)} onChange={(value)=>setForm({...form,min_order:Math.max(1,Number(value)||1)})}/>
+              ) : (
+                <Field label="Minimal Luas (m²)" type="number" value={String(form.min_area_sqm)} onChange={(value)=>setForm({...form,min_area_sqm:Math.max(0.01,Number(value)||1)})}/>
+              )}
+            </div>
+            {form.pricing_unit === "meter" && (
+              <label className="flex items-center gap-2 text-xs font-bold"><input type="checkbox" checked={form.allow_custom_size} onChange={(e)=>setForm({...form,allow_custom_size:e.target.checked})}/> Izinkan Ukuran Custom</label>
+            )}
+            <div className="grid grid-cols-2 gap-3">
               <Field label="Harga" type="number" value={String(form.price)} onChange={(value) => setForm({...form, price: Number(value)})}/>
               <Field label="Harga Lama" type="number" value={form.old_price ? String(form.old_price) : ""} onChange={(value) => setForm({...form, old_price: value ? Number(value) : null})}/>
             </div>
@@ -213,27 +265,34 @@ export default function AdminProductsPage() {
               {form.gallery.length > 0 && <div className="grid grid-cols-3 gap-2">{form.gallery.map((url) => <div key={url} className="relative overflow-hidden rounded-lg border"><img src={url} alt="Foto galeri" className="h-20 w-full object-cover"/><button type="button" onClick={() => removeGallery(url)} className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white text-xs font-bold text-red-500">×</button></div>)}</div>}
               <label className="mt-2 flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed text-xs font-bold">Upload Foto Galeri<input type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={(e) => uploadGallery(e.target.files)} className="hidden"/></label>
             </div>
-            <VariationBuilder
-              label="Bahan"
-              items={form.variations.materials}
-              onAdd={() => addVariation("materials")}
-              onRemove={(index) => removeVariation("materials", index)}
-              onChange={(index, patch) => updateVariation("materials", index, patch)}
-            />
-            <VariationBuilder
-              label="Ukuran"
-              items={form.variations.sizes}
-              onAdd={() => addVariation("sizes")}
-              onRemove={(index) => removeVariation("sizes", index)}
-              onChange={(index, patch) => updateVariation("sizes", index, patch)}
-            />
-            <VariationBuilder
-              label="Finishing"
-              items={form.variations.finishings}
-              onAdd={() => addVariation("finishings")}
-              onRemove={(index) => removeVariation("finishings", index)}
-              onChange={(index, patch) => updateVariation("finishings", index, patch)}
-            />
+            <div className="rounded-lg border p-3">
+              <div className="mb-2 flex items-center justify-between"><b className="text-xs">Grup Variasi</b><button type="button" onClick={addVariationGroup} className="text-xs font-bold text-red-500">+ Tambah Grup</button></div>
+              {form.variations.groups.length === 0 ? (
+                <p className="text-[11px] text-slate-400">Produk belum memiliki variasi.</p>
+              ) : (
+                <div className="space-y-3">
+                  {form.variations.groups.map((group, groupIndex) => (
+                    <div key={groupIndex} className="rounded-lg border p-3">
+                      <div className="mb-2 grid grid-cols-[1fr_28px] gap-2">
+                        <input value={group.group_name} onChange={(e) => updateVariationGroup(groupIndex, { group_name: e.target.value })} placeholder="Nama grup, contoh: Jenis Kertas" className="h-9 rounded border px-2 text-xs font-bold"/>
+                        <button type="button" onClick={() => removeVariationGroup(groupIndex)} className="grid h-9 place-items-center rounded border text-red-500"><Trash2 size={13}/></button>
+                      </div>
+                      {group.options.map((option, optionIndex) => (
+                        <div key={optionIndex} className="mb-2 grid grid-cols-[1fr_90px_110px_28px] gap-2">
+                          <input value={option.name} onChange={(e) => updateVariationOption(groupIndex, optionIndex, { name: e.target.value })} placeholder="Nama opsi" className="h-9 rounded border px-2 text-xs"/>
+                          <input type="number" value={option.extra_price} onChange={(e) => updateVariationOption(groupIndex, optionIndex, { extra_price: Number(e.target.value) || 0 })} placeholder="Tambah Rp" className="h-9 rounded border px-2 text-xs"/>
+                          <select value={option.charge_type || "per_unit"} onChange={(e) => updateVariationOption(groupIndex, optionIndex, { charge_type: e.target.value as "per_unit"|"flat" })} className="h-9 rounded border px-2 text-xs">
+                            <option value="per_unit">Per Unit/Luas</option><option value="flat">Biaya Flat</option>
+                          </select>
+                          <button type="button" onClick={() => removeVariationOption(groupIndex, optionIndex)} className="grid h-9 place-items-center rounded border text-red-500"><Trash2 size={13}/></button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => addVariationOption(groupIndex)} className="mt-1 h-9 w-full rounded-lg border border-dashed text-xs font-bold text-slate-500">+ Tambah Opsi</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Badge" value={form.badge || ""} onChange={(value) => setForm({...form, badge: value})}/>
               <Field label="Terjual" type="number" value={String(form.sold)} onChange={(value) => setForm({...form, sold: Number(value)})}/>

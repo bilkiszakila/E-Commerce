@@ -11,18 +11,19 @@ export type Product = {
   discountPercent?: number;
   discountActive?: boolean;
   stock?: number;
+  pricingUnit?: "pcs" | "meter";
+  minOrder?: number;
+  allowCustomSize?: boolean;
+  minAreaSqm?: number;
   gallery?: string[];
   variations?: ProductVariations;
   rating: number;
   sold: number;
 };
 
-export type VariationOption = { name: string; extra_price: number };
-export type ProductVariations = {
-  materials: VariationOption[];
-  sizes: VariationOption[];
-  finishings: VariationOption[];
-};
+export type VariationOption = { name: string; extra_price: number; charge_type?: "per_unit" | "flat" };
+export type VariationGroup = { group_name: string; options: VariationOption[] };
+export type ProductVariations = { groups: VariationGroup[] };
 
 export const products: Product[] = [
   { id: "banner-flexi", name: "Banner / Flexy Outdoor", category: "Banner & Spanduk", price: 25000, oldPrice: 32000, image: "https://images.unsplash.com/photo-1557426272-fc759fdf7a8d?auto=format&fit=crop&w=900&q=85", badge: "TERLARIS", rating: 4.9, sold: 1280 },

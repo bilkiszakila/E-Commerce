@@ -13,11 +13,12 @@ function ProductContent() {
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [loadingProduct, setLoadingProduct] = useState(true);
-  const [material, setMaterial] = useState("");
-  const [size, setSize] = useState("");
-  const [finishing, setFinishing] = useState("");
+  const [selectedVariations, setSelectedVariations] = useState<Record<string, string>>({});
   const [selectedImage, setSelectedImage] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [customLength, setCustomLength] = useState(100);
+  const [customWidth, setCustomWidth] = useState(100);
+  const [sizeMode, setSizeMode] = useState("");
   const { addToCart } = useStore();
 
   useEffect(() => {
@@ -26,28 +27,66 @@ function ProductContent() {
     getProductByIdOrSlug(value).then((item) => {
       if (item) {
         setProduct(item);
-        setMaterial(item.variations?.materials[0]?.name || "");
-        setSize(item.variations?.sizes[0]?.name || "");
-        setFinishing(item.variations?.finishings[0]?.name || "");
+        const defaults: Record<string, string> = {};
+        item.variations?.groups.forEach((group) => {
+          if (group.options[0]) defaults[group.group_name] = group.options[0].name;
+        });
+        setSelectedVariations(defaults);
         setSelectedImage(item.thumbnailUrl || item.image);
+        setQuantity(item.pricingUnit === "pcs" ? item.minOrder || 1 : 1);
+        const hasSizeGroup = item.variations?.groups.some((group) => /ukuran/i.test(group.group_name));
+        if (item.pricingUnit === "meter" && item.allowCustomSize && !hasSizeGroup) setSizeMode("custom");
       }
       setLoadingProduct(false);
     });
   }, [params.id]);
 
-  const variations = product?.variations || { materials: [], sizes: [], finishings: [] };
+  const variationGroups = product?.variations?.groups || [];
 
-  const unitPrice = useMemo(() => {
-    if (!product) return 0;
+  const pricing = useMemo(() => {
+    if (!product) return { unitPrice: 0, fixedExtra: 0, totalPrice: 0, billedArea: 1, actualArea: 1 };
     const basePrice = product.discountActive
       ? Math.round(product.price * (1 - (product.discountPercent || 0) / 100))
       : product.price;
-    let price = basePrice;
-    price += variations.materials.find((item) => item.name === material)?.extra_price || 0;
-    price += variations.sizes.find((item) => item.name === size)?.extra_price || 0;
-    price += variations.finishings.find((item) => item.name === finishing)?.extra_price || 0;
-    return Math.max(5000, Math.round(price));
-  }, [product, material, size, finishing, variations]);
+    let perUnitExtra = 0;
+    let flatExtra = 0;
+    variationGroups.forEach((group) => {
+      const selectedName = selectedVariations[group.group_name];
+      const option = group.options.find((item) => item.name === selectedName);
+      if (!option) return;
+      if ((option.charge_type || "per_unit") === "flat") flatExtra += option.extra_price;
+      else perUnitExtra += option.extra_price;
+    });
+
+    if (product.pricingUnit === "meter") {
+      let actualArea = (customLength * customWidth) / 10000;
+      const sizeName = selectedVariations["Ukuran"] || "";
+      const sizeMatch = sizeName.match(/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*cm/i);
+      if (sizeMode !== "custom" && sizeMatch) {
+        actualArea = (Number(sizeMatch[1]) * Number(sizeMatch[2])) / 10000;
+      }
+      const billedArea = Math.max(actualArea, product.minAreaSqm || 1);
+      const pricePerSheet = ((basePrice + perUnitExtra) * billedArea) + flatExtra;
+      return {
+        unitPrice: Math.round(pricePerSheet),
+        fixedExtra: 0,
+        totalPrice: Math.round(pricePerSheet * quantity),
+        billedArea,
+        actualArea,
+      };
+    }
+
+    const unitPrice = Math.max(5000, Math.round(basePrice + perUnitExtra));
+    return {
+      unitPrice,
+      fixedExtra: Math.round(flatExtra),
+      totalPrice: Math.round(unitPrice * quantity + flatExtra),
+      billedArea: 1,
+      actualArea: 1,
+    };
+  }, [product, selectedVariations, variationGroups, quantity, customLength, customWidth, sizeMode]);
+
+  const unitPrice = pricing.unitPrice;
 
   const galleryImages = useMemo(() => {
     if (!product) return [];
@@ -57,9 +96,21 @@ function ProductContent() {
 
   function add() {
     if (!product) return;
-    const labels = [material, size, finishing].filter(Boolean);
+    const labels = variationGroups
+      .map((group) => selectedVariations[group.group_name])
+      .filter(Boolean);
+    if (product.pricingUnit === "meter" && sizeMode === "custom") {
+      labels.push(`Ukuran Custom ${customLength} × ${customWidth} cm (${pricing.actualArea.toFixed(2)} m²)`);
+    }
     const key = `${product.id}-${labels.join("-")}`;
-    addToCart({ key, product, quantity, variants: labels.join(" · ") || "Tanpa variasi", unitPrice });
+    addToCart({
+      key,
+      product,
+      quantity,
+      variants: labels.join(" · ") || "Tanpa variasi",
+      unitPrice: pricing.unitPrice,
+      fixedExtra: pricing.fixedExtra,
+    });
   }
 
   if (loadingProduct) {
@@ -92,7 +143,7 @@ function ProductContent() {
           <p className="mt-2 text-sm text-slate-500">★ {product.rating} · Terjual {product.sold}+ · Garansi kualitas cetak</p>
           <div className="mt-5 border-y py-5">
             <p className="text-sm text-slate-500">Harga mulai</p>
-            <p className="mt-1 text-3xl font-black text-red-500">{formatRupiah(unitPrice)} <span className="text-xs font-normal text-slate-400">/ item</span></p>
+            <p className="mt-1 text-3xl font-black text-red-500">{formatRupiah(product.pricingUnit === "meter" ? pricing.totalPrice : pricing.unitPrice)} <span className="text-xs font-normal text-slate-400">{product.pricingUnit === "meter" ? `/ ${quantity} lembar/pcs` : `/ item`}</span></p>
             {(product.oldPrice || product.discountActive) && (
               <p className="text-xs text-slate-400">
                 Harga normal <span className="line-through">{formatRupiah(product.oldPrice || product.price)}</span>
@@ -102,20 +153,38 @@ function ProductContent() {
           </div>
 
           <div className="mt-5 space-y-5">
-            {variations.materials.length > 0 && (
-              <VariationOption label="Jenis bahan" value={material} setValue={setMaterial} options={variations.materials}/>
-            )}
-            {variations.sizes.length > 0 && (
-              <VariationOption label="Ukuran" value={size} setValue={setSize} options={variations.sizes}/>
-            )}
-            {variations.finishings.length > 0 && (
-              <VariationOption label="Finishing" value={finishing} setValue={setFinishing} options={variations.finishings}/>
+            {variationGroups.map((group) => (
+              <VariationOption
+                key={group.group_name}
+                label={group.group_name}
+                value={selectedVariations[group.group_name] || ""}
+                setValue={(value) => {
+                  setSelectedVariations((old) => ({ ...old, [group.group_name]: value }));
+                  if (/ukuran/i.test(group.group_name)) setSizeMode(value === "Ukuran Custom" ? "custom" : "option");
+                }}
+                options={
+                  product.pricingUnit === "meter" && /ukuran/i.test(group.group_name) && product.allowCustomSize
+                    ? [...group.options, { name: "Ukuran Custom", extra_price: 0, charge_type: "per_unit" as const }]
+                    : group.options
+                }
+              />
+            ))}
+            {product.pricingUnit === "meter" && sizeMode === "custom" && (
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="mb-3 text-sm font-bold">Ukuran Custom</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="text-xs font-bold text-slate-600">Panjang (cm)<input type="number" min="1" value={customLength} onChange={(e)=>setCustomLength(Math.max(1,Number(e.target.value)||1))} className="mt-2 h-11 w-full rounded border bg-white px-3"/></label>
+                  <label className="text-xs font-bold text-slate-600">Lebar (cm)<input type="number" min="1" value={customWidth} onChange={(e)=>setCustomWidth(Math.max(1,Number(e.target.value)||1))} className="mt-2 h-11 w-full rounded border bg-white px-3"/></label>
+                </div>
+                <p className="mt-3 text-xs text-slate-500">Luas aktual: <b>{pricing.actualArea.toFixed(2)} m²</b> · Luas ditagih: <b>{pricing.billedArea.toFixed(2)} m²</b></p>
+              </div>
             )}
             <div>
               <p className="mb-2 text-sm font-bold">Jumlah</p>
+              {product.pricingUnit === "pcs" && <p className="mb-2 text-xs text-slate-500">Minimal order: {product.minOrder || 1} pcs</p>}
               <div className="flex w-fit items-center overflow-hidden rounded-lg border">
-                <button onClick={() => setQuantity(Math.max(1, quantity-1))} className="grid h-11 w-11 place-items-center"><Minus size={16}/></button>
-                <input value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)||1))} className="h-11 w-14 border-x text-center outline-none" />
+                <button onClick={() => setQuantity(Math.max(product.pricingUnit === "pcs" ? product.minOrder || 1 : 1, quantity-1))} className="grid h-11 w-11 place-items-center"><Minus size={16}/></button>
+                <input value={quantity} onChange={(e) => setQuantity(Math.max(product.pricingUnit === "pcs" ? product.minOrder || 1 : 1, Number(e.target.value)||1))} className="h-11 w-14 border-x text-center outline-none" />
                 <button onClick={() => setQuantity(quantity+1)} className="grid h-11 w-11 place-items-center"><Plus size={16}/></button>
               </div>
             </div>

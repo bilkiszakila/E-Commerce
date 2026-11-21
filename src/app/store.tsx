@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase/client";
 import { getIsAdmin } from "../lib/supabase/auth";
 import Link from "next/link";
 
-export type CartItem = { key: string; product: Product; quantity: number; variants: string; unitPrice: number };
+export type CartItem = { key: string; product: Product; quantity: number; variants: string; unitPrice: number; fixedExtra?: number };
 type Store = {
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
@@ -83,7 +83,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     removeItem(key) { setCart((old) => old.filter((i) => i.key !== key)); },
     clearCart() { setCart([]); },
     cartCount: cart.reduce((n, i) => n + i.quantity, 0),
-    cartTotal: cart.reduce((n, i) => n + i.unitPrice * i.quantity, 0),
+    cartTotal: cart.reduce((n, i) => n + i.unitPrice * i.quantity + (i.fixedExtra || 0), 0),
     loggedIn,
     isAdmin,
     setLoggedIn,

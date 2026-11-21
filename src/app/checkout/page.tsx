@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CreditCard, MapPin, Navigation, QrCode, ShieldCheck, Tag } from "lucide-react";
 import { useStore } from "../store";
 import { formatRupiah } from "../components";
-import { findVoucher, getStoreSettings, ShippingOption, BankOption } from "../../lib/supabase/data";
+import { findVoucher, findMemberCode, getStoreSettings, ShippingOption, BankOption } from "../../lib/supabase/data";
 import { supabase } from "../../lib/supabase/client";
 
 export default function CheckoutPage() {
@@ -14,7 +14,6 @@ export default function CheckoutPage() {
   const [courier, setCourier] = useState("JNE Reg");
   const [payment, setPayment] = useState<"qris"|"bank">("qris");
   const [voucherCode, setVoucherCode] = useState("");
-  const [memberCode, setMemberCode] = useState("");
   const [appliedVoucher, setAppliedVoucher] = useState<{ code: string; type: "fixed"|"percent"; value: number } | null>(null);
   const [promoMessage, setPromoMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -107,10 +106,20 @@ export default function CheckoutPage() {
   }
 
   async function applyPromo() {
-    const code = (voucherCode || memberCode).trim().toUpperCase();
+    const code = voucherCode.trim().toUpperCase();
     if (!code) { setPromoMessage("Masukkan voucher atau kode member."); return; }
     const voucher = await findVoucher(code);
-    if (!voucher) { setAppliedVoucher(null); setPromoMessage("Kode tidak ditemukan atau tidak aktif."); return; }
+    if (!voucher) {
+      const member = await findMemberCode(code);
+      if (!member || member.discountPercent <= 0) {
+        setAppliedVoucher(null);
+        setPromoMessage("Kode voucher/member tidak ditemukan atau tidak aktif.");
+        return;
+      }
+      setAppliedVoucher({ code: member.code, type: "percent", value: member.discountPercent });
+      setPromoMessage(`Kode member ${member.code} berhasil diterapkan.`);
+      return;
+    }
     if ((voucher.minimum_purchase || 0) > cartTotal) {
       setAppliedVoucher(null);
       setPromoMessage(`Minimal belanja ${formatRupiah(voucher.minimum_purchase)}.`);
@@ -247,8 +256,7 @@ export default function CheckoutPage() {
           <section className="rounded-xl bg-white p-5 md:hidden">
             <h2 className="font-black">Voucher atau Kode Member</h2>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
-              <input value={voucherCode} onChange={(e)=>setVoucherCode(e.target.value.toUpperCase())} placeholder="Kode voucher" className="h-11 rounded-lg border px-3 text-sm uppercase outline-none focus:border-red-400"/>
-              <input value={memberCode} onChange={(e)=>setMemberCode(e.target.value.toUpperCase())} placeholder="Kode member" className="h-11 rounded-lg border px-3 text-sm uppercase outline-none focus:border-red-400"/>
+              <input value={voucherCode} onChange={(e)=>setVoucherCode(e.target.value.toUpperCase())} placeholder="Kode voucher atau member" className="h-11 rounded-lg border px-3 text-sm uppercase outline-none focus:border-red-400 sm:col-span-2"/>
               <button onClick={applyPromo} className="h-11 rounded-lg bg-slate-950 px-5 text-sm font-bold text-white"><Tag className="mr-2 inline" size={15}/> Gunakan</button>
             </div>
             {promoMessage && <p className={`mt-2 text-xs ${appliedVoucher ? "text-emerald-600" : "text-red-500"}`}>{promoMessage}</p>}
@@ -281,7 +289,7 @@ export default function CheckoutPage() {
         <aside className="h-fit rounded-xl bg-white p-5">
           <h2 className="font-black">Ringkasan Pesanan</h2>
           <div className="mt-3 space-y-3">
-            {cart.map((item) => <div key={item.key} className="flex gap-3"><img src={item.product.image} alt="" className="h-14 w-14 rounded object-cover"/><div className="min-w-0 flex-1"><p className="line-clamp-1 text-xs font-bold">{item.product.name}</p><p className="mt-1 text-[10px] text-slate-400">{item.quantity} × {formatRupiah(item.unitPrice)}</p></div></div>)}
+            {cart.map((item) => <div key={item.key} className="flex gap-3"><img src={item.product.image} alt="" className="h-14 w-14 rounded object-cover"/><div className="min-w-0 flex-1"><p className="line-clamp-1 text-xs font-bold">{item.product.name}</p><p className="mt-1 text-[10px] text-slate-400">{item.quantity} × {formatRupiah(item.unitPrice)}{item.fixedExtra ? ` + ${formatRupiah(item.fixedExtra)}` : ""}</p></div></div>)}
           </div>
           <div className="mt-5 hidden border-t pt-4 md:block">
             <h3 className="text-sm font-black">Voucher atau Kode Member</h3>
@@ -289,7 +297,6 @@ export default function CheckoutPage() {
               <input value={voucherCode} onChange={(e)=>setVoucherCode(e.target.value.toUpperCase())} placeholder="Kode voucher/member" className="h-10 min-w-0 rounded-lg border px-3 text-xs uppercase outline-none focus:border-red-400"/>
               <button onClick={applyPromo} className="h-10 rounded-lg bg-slate-950 px-3 text-xs font-bold text-white">Gunakan</button>
             </div>
-            {memberCode && <input value={memberCode} onChange={(e)=>setMemberCode(e.target.value.toUpperCase())} placeholder="Kode member alternatif" className="mt-2 h-10 w-full rounded-lg border px-3 text-xs uppercase outline-none focus:border-red-400"/>}
             {promoMessage && <p className={`mt-2 text-xs ${appliedVoucher ? "text-emerald-600" : "text-red-500"}`}>{promoMessage}</p>}
           </div>
           <div className="mt-5 hidden border-t pt-4 md:block">

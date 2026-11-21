@@ -24,8 +24,12 @@ create table if not exists public.products (
   discount_percent integer not null default 0 check (discount_percent >= 0 and discount_percent <= 100),
   discount_active boolean not null default false,
   stock integer not null default 0,
+  pricing_unit text not null default 'pcs' check (pricing_unit in ('pcs','meter')),
+  min_order integer not null default 1,
+  allow_custom_size boolean not null default false,
+  min_area_sqm numeric not null default 1,
   gallery text[] not null default '{}'::text[],
-  variations jsonb not null default '{"materials":[],"sizes":[],"finishings":[]}'::jsonb,
+  variations jsonb not null default '{"groups":[]}'::jsonb,
   rating numeric(2,1) not null default 0,
   sold integer not null default 0,
   active boolean not null default true,
@@ -65,6 +69,8 @@ create table if not exists public.profiles (
   address jsonb not null default '{}'::jsonb,
   avatar_url text,
   role text not null default 'user',
+  member_code text,
+  member_discount_percent integer not null default 0,
   is_admin boolean not null default false,
   updated_at timestamptz not null default now()
 );
@@ -99,6 +105,7 @@ create table if not exists public.orders (
   total bigint not null,
   voucher_code text,
   shipping_address jsonb not null,
+  tracking_number text,
   payment_proof_url text,
   payment_confirmed_at timestamptz,
   created_at timestamptz not null default now()
@@ -139,6 +146,10 @@ alter table public.profiles add column if not exists full_name text;
 alter table public.profiles add column if not exists address jsonb not null default '{}'::jsonb;
 alter table public.profiles add column if not exists avatar_url text;
 alter table public.profiles add column if not exists role text not null default 'user';
+alter table public.profiles add column if not exists member_code text;
+alter table public.profiles add column if not exists member_discount_percent integer not null default 0;
+alter table public.profiles add column if not exists member_code text;
+alter table public.profiles add column if not exists member_discount_percent integer not null default 0;
 alter table public.profiles add column if not exists email text;
 alter table public.categories add column if not exists slug text;
 alter table public.categories add column if not exists thumbnail_url text;
@@ -148,8 +159,12 @@ alter table public.products add column if not exists thumbnail_url text;
 alter table public.products add column if not exists discount_percent integer not null default 0;
 alter table public.products add column if not exists discount_active boolean not null default false;
 alter table public.products add column if not exists stock integer not null default 0;
+alter table public.products add column if not exists pricing_unit text not null default 'pcs';
+alter table public.products add column if not exists min_order integer not null default 1;
+alter table public.products add column if not exists allow_custom_size boolean not null default false;
+alter table public.products add column if not exists min_area_sqm numeric not null default 1;
 alter table public.products add column if not exists gallery text[] not null default '{}'::text[];
-alter table public.products add column if not exists variations jsonb not null default '{"materials":[],"sizes":[],"finishings":[]}'::jsonb;
+alter table public.products add column if not exists variations jsonb not null default '{"groups":[]}'::jsonb;
 alter table public.vouchers add column if not exists minimum_purchase bigint not null default 0;
 alter table public.vouchers add column if not exists usage_limit integer;
 alter table public.vouchers add column if not exists used_count integer not null default 0;
@@ -158,6 +173,7 @@ alter table public.vouchers add column if not exists expires_at timestamptz;
 alter table public.store_settings add column if not exists bank_options jsonb not null default '[]'::jsonb;
 alter table public.orders add column if not exists payment_proof_url text;
 alter table public.orders add column if not exists payment_confirmed_at timestamptz;
+alter table public.orders add column if not exists tracking_number text;
 
 create or replace function public.handle_new_auth_user()
 returns trigger
