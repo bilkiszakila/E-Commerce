@@ -21,6 +21,7 @@ export function Header() {
           </div>
           <div className="flex items-center gap-5">
             <Link href="/promo">Promo</Link><Link href="/account/orders">Lacak Pesanan</Link>
+            <Link href="/admin">Admin</Link>
             <button className="flex items-center gap-1">Bahasa Indonesia <ChevronDown size={12} /></button>
           </div>
         </div>
