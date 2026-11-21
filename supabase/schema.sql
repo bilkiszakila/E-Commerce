@@ -24,6 +24,8 @@ create table if not exists public.products (
   discount_percent integer not null default 0 check (discount_percent >= 0 and discount_percent <= 100),
   discount_active boolean not null default false,
   stock integer not null default 0,
+  gallery text[] not null default '{}'::text[],
+  variations jsonb not null default '{"materials":[],"sizes":[],"finishings":[]}'::jsonb,
   rating numeric(2,1) not null default 0,
   sold integer not null default 0,
   active boolean not null default true,
@@ -138,6 +140,8 @@ alter table public.products add column if not exists thumbnail_url text;
 alter table public.products add column if not exists discount_percent integer not null default 0;
 alter table public.products add column if not exists discount_active boolean not null default false;
 alter table public.products add column if not exists stock integer not null default 0;
+alter table public.products add column if not exists gallery text[] not null default '{}'::text[];
+alter table public.products add column if not exists variations jsonb not null default '{"materials":[],"sizes":[],"finishings":[]}'::jsonb;
 alter table public.vouchers add column if not exists minimum_purchase bigint not null default 0;
 alter table public.vouchers add column if not exists usage_limit integer;
 alter table public.vouchers add column if not exists used_count integer not null default 0;

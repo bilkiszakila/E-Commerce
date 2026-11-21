@@ -1,5 +1,5 @@
 import { supabase } from "./client";
-import { Product } from "../../app/data";
+import { Product, ProductVariations } from "../../app/data";
 
 export type Category = {
   id: string;
@@ -12,7 +12,7 @@ export type Category = {
 export async function getProducts(): Promise<Product[]> {
   const { data, error } = await supabase
     .from("products")
-    .select("id,name,slug,category,price,old_price,image,thumbnail_url,badge,discount_percent,discount_active,stock,rating,sold")
+    .select("id,name,slug,category,price,old_price,image,thumbnail_url,badge,discount_percent,discount_active,stock,gallery,variations,rating,sold")
     .eq("active", true)
     .order("created_at", { ascending: true });
 
@@ -33,6 +33,8 @@ export async function getProducts(): Promise<Product[]> {
     discountPercent: item.discount_percent ?? 0,
     discountActive: item.discount_active ?? false,
     stock: item.stock ?? 0,
+    gallery: Array.isArray(item.gallery) ? item.gallery : [],
+    variations: normalizeVariations(item.variations),
     rating: Number(item.rating),
     sold: item.sold,
   }));
@@ -72,7 +74,7 @@ export async function getActiveBanner(): Promise<string | null> {
 export async function getProductByIdOrSlug(value: string): Promise<Product | null> {
   const { data, error } = await supabase
     .from("products")
-    .select("id,name,slug,category,price,old_price,image,thumbnail_url,badge,discount_percent,discount_active,stock,rating,sold")
+    .select("id,name,slug,category,price,old_price,image,thumbnail_url,badge,discount_percent,discount_active,stock,gallery,variations,rating,sold")
     .or(`id.eq.${value},slug.eq.${value}`)
     .eq("active", true)
     .maybeSingle();
@@ -95,8 +97,28 @@ export async function getProductByIdOrSlug(value: string): Promise<Product | nul
     discountPercent: data.discount_percent ?? 0,
     discountActive: data.discount_active ?? false,
     stock: data.stock ?? 0,
+    gallery: Array.isArray(data.gallery) ? data.gallery : [],
+    variations: normalizeVariations(data.variations),
     rating: Number(data.rating),
     sold: data.sold,
+  };
+}
+
+function normalizeVariations(value: unknown): ProductVariations {
+  const raw = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const normalize = (items: unknown) => Array.isArray(items)
+    ? items
+        .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+        .map((item) => ({
+          name: typeof item.name === "string" ? item.name : "",
+          extra_price: Number(item.extra_price) || 0,
+        }))
+        .filter((item) => item.name)
+    : [];
+  return {
+    materials: normalize(raw.materials),
+    sizes: normalize(raw.sizes),
+    finishings: normalize(raw.finishings),
   };
 }
 

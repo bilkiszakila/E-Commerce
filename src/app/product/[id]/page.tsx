@@ -13,11 +13,10 @@ function ProductContent() {
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [loadingProduct, setLoadingProduct] = useState(true);
-  const [material, setMaterial] = useState("Standard");
-  const [size, setSize] = useState("60 x 90 cm");
-  const [customWidth, setCustomWidth] = useState("60");
-  const [customHeight, setCustomHeight] = useState("90");
-  const [finishing, setFinishing] = useState("Tanpa");
+  const [material, setMaterial] = useState("");
+  const [size, setSize] = useState("");
+  const [finishing, setFinishing] = useState("");
+  const [selectedImage, setSelectedImage] = useState("");
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useStore();
 
@@ -25,10 +24,18 @@ function ProductContent() {
     const value = Array.isArray(params.id) ? params.id[0] : params.id;
     if (!value) return;
     getProductByIdOrSlug(value).then((item) => {
-      if (item) setProduct(item);
+      if (item) {
+        setProduct(item);
+        setMaterial(item.variations?.materials[0]?.name || "");
+        setSize(item.variations?.sizes[0]?.name || "");
+        setFinishing(item.variations?.finishings[0]?.name || "");
+        setSelectedImage(item.thumbnailUrl || item.image);
+      }
       setLoadingProduct(false);
     });
   }, [params.id]);
+
+  const variations = product?.variations || { materials: [], sizes: [], finishings: [] };
 
   const unitPrice = useMemo(() => {
     if (!product) return 0;
@@ -36,20 +43,23 @@ function ProductContent() {
       ? Math.round(product.price * (1 - (product.discountPercent || 0) / 100))
       : product.price;
     let price = basePrice;
-    if (material === "Premium") price *= 1.35;
-    if (material === "Outdoor") price *= 1.6;
-    if (size === "120 x 160 cm") price *= 2.2;
-    if (size === "Custom") price *= (Number(customWidth) * Number(customHeight)) / 5400;
-    if (finishing === "Jahit + Mata Itik") price += 18000;
-    if (finishing === "Doble Sisi") price += 12000;
-    if (finishing === "Laminasi") price += 25000;
+    price += variations.materials.find((item) => item.name === material)?.extra_price || 0;
+    price += variations.sizes.find((item) => item.name === size)?.extra_price || 0;
+    price += variations.finishings.find((item) => item.name === finishing)?.extra_price || 0;
     return Math.max(5000, Math.round(price));
-  }, [product, material, size, customWidth, customHeight, finishing]);
+  }, [product, material, size, finishing, variations]);
+
+  const galleryImages = useMemo(() => {
+    if (!product) return [];
+    const primary = product.thumbnailUrl || product.image;
+    return Array.from(new Set([primary, ...(product.gallery || [])].filter(Boolean)));
+  }, [product]);
 
   function add() {
     if (!product) return;
-    const key = `${product.id}-${material}-${size}-${customWidth}-${customHeight}-${finishing}`;
-    addToCart({ key, product, quantity, variants: `${material} · ${size === "Custom" ? `${customWidth} x ${customHeight} cm` : size} · ${finishing}`, unitPrice });
+    const labels = [material, size, finishing].filter(Boolean);
+    const key = `${product.id}-${labels.join("-")}`;
+    addToCart({ key, product, quantity, variants: labels.join(" · ") || "Tanpa variasi", unitPrice });
   }
 
   if (loadingProduct) {
@@ -64,11 +74,17 @@ function ProductContent() {
       <div className="grid gap-6 rounded-xl bg-white p-4 md:grid-cols-[1fr_1fr] md:p-6">
         <div>
           <div className="aspect-square overflow-hidden rounded-lg bg-slate-100 md:h-130 md:aspect-auto">
-            <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
+            <img src={selectedImage || product.image} alt={product.name} className="h-full w-full object-cover" />
           </div>
-          <div className="mt-3 grid grid-cols-4 gap-2">
-            {[product.image, product.image, product.image, product.image].map((img, i) => <button key={i} className={`h-20 overflow-hidden rounded border ${i === 0 ? "border-red-500" : "border-slate-200"}`}><img src={img} alt="" className="h-full w-full object-cover"/></button>)}
-          </div>
+          {galleryImages.length > 0 && (
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {galleryImages.map((img) => (
+                <button key={img} onClick={() => setSelectedImage(img)} className={`h-20 overflow-hidden rounded border ${selectedImage === img ? "border-red-500" : "border-slate-200"}`}>
+                  <img src={img} alt="" className="h-full w-full object-cover"/>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <p className="text-xs font-bold text-red-500">{product.category}</p>
@@ -86,13 +102,15 @@ function ProductContent() {
           </div>
 
           <div className="mt-5 space-y-5">
-            <Option label="Jenis bahan" value={material} setValue={setMaterial} options={["Standard", "Premium", "Outdoor"]}/>
-            <Option label="Ukuran" value={size} setValue={setSize} options={["60 x 90 cm", "120 x 160 cm", "Custom"]}/>
-            {size === "Custom" && <div className="grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3">
-              <label className="text-xs font-bold text-slate-600">Lebar (cm)<input type="number" min="10" value={customWidth} onChange={(e) => setCustomWidth(e.target.value)} className="mt-2 h-11 w-full rounded border bg-white px-3 outline-none"/></label>
-              <label className="text-xs font-bold text-slate-600">Tinggi (cm)<input type="number" min="10" value={customHeight} onChange={(e) => setCustomHeight(e.target.value)} className="mt-2 h-11 w-full rounded border bg-white px-3 outline-none"/></label>
-            </div>}
-            <Option label="Finishing" value={finishing} setValue={setFinishing} options={["Tanpa", "Laminasi", "Jahit + Mata Itik", "Doble Sisi"]}/>
+            {variations.materials.length > 0 && (
+              <VariationOption label="Jenis bahan" value={material} setValue={setMaterial} options={variations.materials}/>
+            )}
+            {variations.sizes.length > 0 && (
+              <VariationOption label="Ukuran" value={size} setValue={setSize} options={variations.sizes}/>
+            )}
+            {variations.finishings.length > 0 && (
+              <VariationOption label="Finishing" value={finishing} setValue={setFinishing} options={variations.finishings}/>
+            )}
             <div>
               <p className="mb-2 text-sm font-bold">Jumlah</p>
               <div className="flex w-fit items-center overflow-hidden rounded-lg border">
@@ -121,8 +139,8 @@ function ProductContent() {
   );
 }
 
-function Option({ label, value, setValue, options }: { label: string; value: string; setValue: (v: string) => void; options: string[] }) {
-  return <div><p className="mb-2 text-sm font-bold">{label}</p><div className="flex flex-wrap gap-2">{options.map((o) => <button key={o} onClick={() => setValue(o)} className={`rounded-lg border px-3 py-2 text-xs ${value === o ? "border-red-500 bg-red-50 font-bold text-red-500" : "border-slate-200 text-slate-600"}`}>{o}</button>)}</div></div>;
+function VariationOption({ label, value, setValue, options }: { label: string; value: string; setValue: (v: string) => void; options: {name:string;extra_price:number}[] }) {
+  return <div><p className="mb-2 text-sm font-bold">{label}</p><div className="flex flex-wrap gap-2">{options.map((option) => <button key={option.name} onClick={() => setValue(option.name)} className={`rounded-lg border px-3 py-2 text-xs ${value === option.name ? "border-red-500 bg-red-50 font-bold text-red-500" : "border-slate-200 text-slate-600"}`}><span>{option.name}</span>{option.extra_price !== 0 && <span className="ml-1 text-[10px] text-slate-400">{option.extra_price > 0 ? `+${formatRupiah(option.extra_price)}` : formatRupiah(option.extra_price)}</span>}</button>)}</div></div>;
 }
 
 export default function ProductPage() {

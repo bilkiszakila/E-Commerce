@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Package, Plus, Save, Trash2 } from "lucide-react";
 import { supabase } from "../../../lib/supabase/client";
+import type { ProductVariations, VariationOption } from "../../data";
 
 type ProductRow = {
   id: string;
@@ -18,6 +19,8 @@ type ProductRow = {
   discount_percent: number;
   discount_active: boolean;
   stock: number;
+  gallery: string[];
+  variations: ProductVariations;
   rating: number;
   sold: number;
   active: boolean;
@@ -25,7 +28,8 @@ type ProductRow = {
 
 const emptyProduct: ProductRow = {
   id: "", name: "", slug: "", category: "", price: 0, old_price: null,
-  image: "", thumbnail_url: "", badge: "", discount_percent: 0, discount_active: false, stock: 0, rating: 0, sold: 0, active: true,
+  image: "", thumbnail_url: "", badge: "", discount_percent: 0, discount_active: false, stock: 0,
+  gallery: [], variations: { materials: [], sizes: [], finishings: [] }, rating: 0, sold: 0, active: true,
 };
 
 export default function AdminProductsPage() {
@@ -47,7 +51,15 @@ export default function AdminProductsPage() {
   useEffect(() => { load(); }, []);
 
   function edit(product: ProductRow) {
-    setForm(product);
+    setForm({
+      ...product,
+      gallery: Array.isArray(product.gallery) ? product.gallery : [],
+      variations: {
+        materials: product.variations?.materials || [],
+        sizes: product.variations?.sizes || [],
+        finishings: product.variations?.finishings || [],
+      },
+    });
     setEditing(true);
   }
 
@@ -69,6 +81,65 @@ export default function AdminProductsPage() {
     setForm((old) => ({ ...old, thumbnail_url: data.publicUrl, image: data.publicUrl }));
   }
 
+  async function uploadGallery(files?: FileList | null) {
+    if (!files?.length) return;
+    setMessage("");
+    const uploaded: string[] = [];
+    for (const file of Array.from(files)) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        setMessage("Galeri hanya menerima JPG, PNG, atau WebP.");
+        continue;
+      }
+      const path = `gallery/${Date.now()}-${crypto.randomUUID()}-${file.name}`;
+      const { error } = await supabase.storage.from("products").upload(path, file, { upsert: false });
+      if (error) {
+        setMessage(error.message);
+        continue;
+      }
+      uploaded.push(supabase.storage.from("products").getPublicUrl(path).data.publicUrl);
+    }
+    setForm((old) => ({ ...old, gallery: Array.from(new Set([...old.gallery, ...uploaded])) }));
+  }
+
+  async function removeGallery(url: string) {
+    setForm((old) => ({ ...old, gallery: old.gallery.filter((item) => item !== url) }));
+    const marker = "/storage/v1/object/public/products/";
+    const index = url.indexOf(marker);
+    if (index >= 0) {
+      await supabase.storage.from("products").remove([decodeURIComponent(url.slice(index + marker.length))]);
+    }
+  }
+
+  function updateVariation(category: keyof ProductVariations, index: number, patch: Partial<VariationOption>) {
+    setForm((old) => ({
+      ...old,
+      variations: {
+        ...old.variations,
+        [category]: old.variations[category].map((item, i) => i === index ? { ...item, ...patch } : item),
+      },
+    }));
+  }
+
+  function addVariation(category: keyof ProductVariations) {
+    setForm((old) => ({
+      ...old,
+      variations: {
+        ...old.variations,
+        [category]: [...old.variations[category], { name: "", extra_price: 0 }],
+      },
+    }));
+  }
+
+  function removeVariation(category: keyof ProductVariations, index: number) {
+    setForm((old) => ({
+      ...old,
+      variations: {
+        ...old.variations,
+        [category]: old.variations[category].filter((_, i) => i !== index),
+      },
+    }));
+  }
+
   async function save() {
     setMessage("");
     if (!form.id || !form.name || !form.category || form.price <= 0) {
@@ -88,6 +159,8 @@ export default function AdminProductsPage() {
       discount_percent: form.discount_percent,
       discount_active: form.discount_active,
       stock: form.stock,
+      gallery: form.gallery,
+      variations: form.variations,
       rating: form.rating,
       sold: form.sold,
       active: form.active,
@@ -135,6 +208,32 @@ export default function AdminProductsPage() {
             <Field label="URL Gambar" value={form.image || ""} onChange={(value) => setForm({...form, image: value})}/>
             {form.thumbnail_url && <img src={form.thumbnail_url} alt="Thumbnail produk" className="h-32 w-full rounded-lg object-cover"/>}
             <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border text-xs font-bold">Upload Thumbnail<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => uploadThumbnail(e.target.files?.[0])} className="hidden"/></label>
+            <div className="border-t pt-3">
+              <p className="mb-2 text-xs font-bold text-slate-600">Galeri Produk</p>
+              {form.gallery.length > 0 && <div className="grid grid-cols-3 gap-2">{form.gallery.map((url) => <div key={url} className="relative overflow-hidden rounded-lg border"><img src={url} alt="Foto galeri" className="h-20 w-full object-cover"/><button type="button" onClick={() => removeGallery(url)} className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-white text-xs font-bold text-red-500">×</button></div>)}</div>}
+              <label className="mt-2 flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed text-xs font-bold">Upload Foto Galeri<input type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={(e) => uploadGallery(e.target.files)} className="hidden"/></label>
+            </div>
+            <VariationBuilder
+              label="Bahan"
+              items={form.variations.materials}
+              onAdd={() => addVariation("materials")}
+              onRemove={(index) => removeVariation("materials", index)}
+              onChange={(index, patch) => updateVariation("materials", index, patch)}
+            />
+            <VariationBuilder
+              label="Ukuran"
+              items={form.variations.sizes}
+              onAdd={() => addVariation("sizes")}
+              onRemove={(index) => removeVariation("sizes", index)}
+              onChange={(index, patch) => updateVariation("sizes", index, patch)}
+            />
+            <VariationBuilder
+              label="Finishing"
+              items={form.variations.finishings}
+              onAdd={() => addVariation("finishings")}
+              onRemove={(index) => removeVariation("finishings", index)}
+              onChange={(index, patch) => updateVariation("finishings", index, patch)}
+            />
             <div className="grid grid-cols-2 gap-3">
               <Field label="Badge" value={form.badge || ""} onChange={(value) => setForm({...form, badge: value})}/>
               <Field label="Terjual" type="number" value={String(form.sold)} onChange={(value) => setForm({...form, sold: Number(value)})}/>
@@ -159,6 +258,27 @@ export default function AdminProductsPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function VariationBuilder({ label, items, onAdd, onRemove, onChange }: {
+  label: string;
+  items: VariationOption[];
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  onChange: (index: number, patch: Partial<VariationOption>) => void;
+}) {
+  return (
+    <div className="rounded-lg border p-3">
+      <div className="mb-2 flex items-center justify-between"><b className="text-xs">{label}</b><button type="button" onClick={onAdd} className="text-xs font-bold text-red-500">+ Tambah</button></div>
+      {items.length === 0 ? <p className="text-[11px] text-slate-400">Tidak ada opsi {label.toLowerCase()}.</p> : <div className="space-y-2">{items.map((item, index) => (
+        <div key={index} className="grid grid-cols-[1fr_100px_28px] gap-2">
+          <input value={item.name} onChange={(e) => onChange(index, { name: e.target.value })} placeholder={`Nama ${label.toLowerCase()}`} className="h-9 rounded border px-2 text-xs"/>
+          <input type="number" value={item.extra_price} onChange={(e) => onChange(index, { extra_price: Number(e.target.value) || 0 })} placeholder="Tambah Rp" className="h-9 rounded border px-2 text-xs"/>
+          <button type="button" onClick={() => onRemove(index)} aria-label={`Hapus opsi ${label}`} className="grid h-9 place-items-center rounded border text-red-500"><Trash2 size={13}/></button>
+        </div>
+      ))}</div>}
+    </div>
   );
 }
 

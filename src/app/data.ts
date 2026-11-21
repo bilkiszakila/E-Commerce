@@ -11,8 +11,17 @@ export type Product = {
   discountPercent?: number;
   discountActive?: boolean;
   stock?: number;
+  gallery?: string[];
+  variations?: ProductVariations;
   rating: number;
   sold: number;
+};
+
+export type VariationOption = { name: string; extra_price: number };
+export type ProductVariations = {
+  materials: VariationOption[];
+  sizes: VariationOption[];
+  finishings: VariationOption[];
 };
 
 export const products: Product[] = [
