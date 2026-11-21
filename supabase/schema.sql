@@ -93,6 +93,8 @@ create table if not exists public.orders (
   total bigint not null,
   voucher_code text,
   shipping_address jsonb not null,
+  payment_proof_url text,
+  payment_confirmed_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -142,6 +144,8 @@ alter table public.vouchers add column if not exists used_count integer not null
 alter table public.vouchers add column if not exists starts_at timestamptz;
 alter table public.vouchers add column if not exists expires_at timestamptz;
 alter table public.store_settings add column if not exists bank_options jsonb not null default '[]'::jsonb;
+alter table public.orders add column if not exists payment_proof_url text;
+alter table public.orders add column if not exists payment_confirmed_at timestamptz;
 
 create or replace function public.handle_new_auth_user()
 returns trigger
@@ -213,6 +217,8 @@ drop policy if exists "Public insert guest orders" on public.orders;
 drop policy if exists "Public insert guest order items" on public.order_items;
 drop policy if exists "Public read orders by id" on public.orders;
 drop policy if exists "Public read order items by id" on public.order_items;
+drop policy if exists "Update payment proof" on public.orders;
+drop policy if exists "Update payment proof" on public.orders;
 
 drop policy if exists "Public read promo banner files" on storage.objects;
 drop policy if exists "Authenticated upload promo banner files" on storage.objects;
@@ -220,6 +226,9 @@ drop policy if exists "Authenticated update promo banner files" on storage.objec
 drop policy if exists "Public read product files" on storage.objects;
 drop policy if exists "Authenticated upload product files" on storage.objects;
 drop policy if exists "Authenticated update product files" on storage.objects;
+drop policy if exists "Public read payment proofs" on storage.objects;
+drop policy if exists "Guest or user upload payment proofs" on storage.objects;
+drop policy if exists "Guest or user update payment proofs" on storage.objects;
 
 create policy "Public read categories" on public.categories for select using (true);
 create policy "Public read products" on public.products for select using (active = true);
@@ -278,6 +287,7 @@ grant select, insert, update, delete on public.settings to authenticated;
 grant select on public.store_settings to anon, authenticated;
 grant insert, update on public.store_settings to authenticated;
 grant insert, select on public.orders to anon, authenticated;
+grant update on public.orders to anon;
 grant insert, select on public.order_items to anon, authenticated;
 
 create policy "Admins manage categories" on public.categories for all using (public.is_admin()) with check (public.is_admin());
@@ -297,6 +307,9 @@ create policy "Public insert guest orders" on public.orders for insert with chec
 create policy "Public insert guest order items" on public.order_items for insert with check (true);
 create policy "Public read orders by id" on public.orders for select using (true);
 create policy "Public read order items by id" on public.order_items for select using (true);
+create policy "Update payment proof" on public.orders for update to anon, authenticated
+using (status in ('pending', 'waiting_verification', 'menunggu_konfirmasi'))
+with check (status in ('pending', 'waiting_verification', 'menunggu_konfirmasi', 'diproses', 'paid'));
 
 create policy "Admins fallback read all orders" on public.orders for select using (
   exists (
@@ -331,6 +344,10 @@ insert into storage.buckets (id, name, public)
 values ('products', 'products', true)
 on conflict (id) do update set public = true;
 
+insert into storage.buckets (id, name, public)
+values ('payment-proofs', 'payment-proofs', true)
+on conflict (id) do update set public = true;
+
 create policy "Public read promo banner files" on storage.objects
 for select using (bucket_id = 'promo-banners');
 
@@ -348,6 +365,15 @@ for insert to authenticated with check (bucket_id = 'products');
 
 create policy "Authenticated update product files" on storage.objects
 for update to authenticated using (bucket_id = 'products');
+
+create policy "Public read payment proofs" on storage.objects
+for select using (bucket_id = 'payment-proofs');
+
+create policy "Guest or user upload payment proofs" on storage.objects
+for insert to anon, authenticated with check (bucket_id = 'payment-proofs');
+
+create policy "Guest or user update payment proofs" on storage.objects
+for update to anon, authenticated using (bucket_id = 'payment-proofs') with check (bucket_id = 'payment-proofs');
 
 insert into public.categories (name, image, sort_order) values
   ('Banner & Spanduk', 'https://images.unsplash.com/photo-1557426272-fc759fdf7a8d?auto=format&fit=crop&w=500&q=80', 1),
