@@ -187,6 +187,8 @@ drop policy if exists "Admins manage vouchers" on public.vouchers;
 drop policy if exists "Admins manage settings" on public.settings;
 drop policy if exists "Admins read all orders" on public.orders;
 drop policy if exists "Admins update all orders" on public.orders;
+drop policy if exists "Admins fallback read all orders" on public.orders;
+drop policy if exists "Admins fallback update all orders" on public.orders;
 drop policy if exists "Admins read all order items" on public.order_items;
 
 drop policy if exists "Public read promo banner files" on storage.objects;
@@ -233,6 +235,23 @@ as $$
 $$;
 
 grant execute on function public.is_admin() to authenticated;
+grant usage on schema public to authenticated;
+grant usage on schema public to anon;
+grant select on public.categories to anon;
+grant select on public.products to anon;
+grant select on public.promo_banners to anon;
+grant select on public.vouchers to anon;
+grant select on public.settings to anon;
+grant select, insert, update, delete on public.categories to authenticated;
+grant select, insert, update, delete on public.products to authenticated;
+grant select, insert, update, delete on public.promo_banners to authenticated;
+grant select, insert, update, delete on public.vouchers to authenticated;
+grant select, insert, update on public.profiles to authenticated;
+grant select, insert, update, delete on public.cart_items to authenticated;
+grant select, insert, update, delete on public.wishlist_items to authenticated;
+grant select, insert, update on public.orders to authenticated;
+grant select, insert, update, delete on public.order_items to authenticated;
+grant select, insert, update, delete on public.settings to authenticated;
 
 create policy "Admins manage categories" on public.categories for all using (public.is_admin()) with check (public.is_admin());
 create policy "Admins manage products" on public.products for all using (public.is_admin()) with check (public.is_admin());
@@ -242,6 +261,31 @@ create policy "Admins manage settings" on public.settings for all using (public.
 create policy "Admins read all orders" on public.orders for select using (public.is_admin());
 create policy "Admins update all orders" on public.orders for update using (public.is_admin()) with check (public.is_admin());
 create policy "Admins read all order items" on public.order_items for select using (public.is_admin());
+
+create policy "Admins fallback read all orders" on public.orders for select using (
+  exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and is_admin = true
+  )
+);
+
+create policy "Admins fallback update all orders" on public.orders for update using (
+  exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and is_admin = true
+  )
+) with check (
+  exists (
+    select 1
+    from public.profiles
+    where id = auth.uid()
+      and is_admin = true
+  )
+);
 
 insert into storage.buckets (id, name, public)
 values ('promo-banners', 'promo-banners', true)
