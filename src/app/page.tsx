@@ -41,13 +41,13 @@ export default function Home() {
       </section>
 
       <section className="mx-auto max-w-[1180px] px-3 pt-5 md:px-5 md:pt-8">
-        <div className="mb-3 flex items-center justify-between px-0"><h2 className="text-sm font-black md:text-xl">Kategori Produk</h2><Link href="/category" className="text-[10px] font-bold text-[var(--brand-primary)] md:text-xs md:text-slate-500">Lihat Semua</Link></div>
+        <div className="mb-3 flex items-end justify-between px-1"><h2 className="text-sm font-black md:text-xl">Kategori Produk</h2><Link href="/category" className="text-[10px] font-bold text-[var(--brand-primary)] md:text-xs md:text-slate-500">Lihat semua</Link></div>
         <div className="grid grid-cols-3 gap-2 md:grid-cols-6 md:gap-3">
-          {categories.map(([name, image]) => <Link href={`/category?name=${encodeURIComponent(name)}`} key={name} className="group h-[108px] overflow-hidden rounded-[8px] border-[1.5px] border-[var(--brand-primary)] bg-white text-center md:h-[150px]">
-            <div className="mx-auto mt-2 h-[62px] w-[62px] overflow-hidden md:mt-3 md:h-[92px] md:w-[92px]">
-              <img src={image} alt={name} className="h-full w-full object-contain transition group-hover:scale-105"/>
+          {categories.map(([name, image]) => <Link href={`/category?name=${encodeURIComponent(name)}`} key={name} className="group overflow-hidden rounded-[7px] border border-[var(--brand-border)] bg-white text-center">
+            <div className="m-1 aspect-square overflow-hidden rounded-[5px] bg-[var(--brand-surface)]">
+              <img src={image} alt={name} className="h-full w-full object-cover transition group-hover:scale-105"/>
             </div>
-            <b className="mx-auto block h-8 max-w-[94px] px-1 pt-1 text-[11px] leading-[15px] text-[var(--brand-text)] md:max-w-none md:text-sm">{name}</b>
+            <b className="block h-8 px-1 pb-1 text-[9px] leading-[16px] text-[var(--brand-text)] md:h-auto md:text-sm">{name}</b>
           </Link>)}
         </div>
       </section>
