@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldCheck, Truck, RotateCcw, Headphones, ChevronRight, ChevronLeft } from "lucide-react";
+import { ShieldCheck, Truck, RotateCcw, Headphones, ChevronRight, ChevronLeft, BadgePercent } from "lucide-react";
 import { categories, products } from "./data";
 import { ProductCard } from "./components";
 
@@ -22,7 +22,7 @@ export default function Home() {
           <button className="absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white shadow"><ChevronLeft size={18}/></button>
           <button className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-white shadow"><ChevronRight size={18}/></button>
         </div>
-        <div className="relative h-[150px] overflow-hidden rounded-lg md:hidden">
+        <div className="relative h-[210px] overflow-hidden rounded-lg md:hidden">
           <img src="https://images.unsplash.com/photo-1557426272-fc759fdf7a8d?auto=format&fit=crop&w=900&q=90" alt="Promo cetak" className="h-full w-full object-cover"/>
           <div className="absolute inset-0 bg-gradient-to-r from-[#1842D2] to-[#1842D2]/70 p-5 text-white"><b className="text-[10px]">PROMO NOVEMBER</b><h1 className="mt-2 max-w-[220px] text-xl font-black leading-tight">Bikin Brand Lebih Dilihat</h1><Link href="/promo" className="mt-4 inline-block rounded-md bg-white px-3 py-2 text-[11px] font-bold text-[var(--brand-primary)]">Lihat Promo</Link></div>
         </div>
@@ -40,32 +40,43 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1180px] px-3 pt-5 md:px-5 md:pt-8">
-        <div className="mb-3 flex items-end justify-between px-1"><h2 className="text-sm font-black md:text-xl">Kategori Produk</h2><Link href="/category" className="text-[10px] font-bold text-[var(--brand-primary)] md:text-xs md:text-slate-500">Lihat semua</Link></div>
+      <section className="mx-auto max-w-[1180px] px-4 pt-8 md:px-5">
+        <div className="mb-4 flex items-end justify-between"><h2 className="text-lg font-black md:text-xl">Kategori Produk</h2><Link href="/category" className="text-xs font-bold text-slate-500">Lihat semua</Link></div>
         <div className="grid grid-cols-3 gap-2 md:grid-cols-6 md:gap-3">
-          {categories.map(([name, image]) => <Link href={`/category?name=${encodeURIComponent(name)}`} key={name} className="group overflow-hidden rounded-[7px] border border-[var(--brand-border)] bg-white text-center">
-            <div className="m-1 aspect-square overflow-hidden rounded-[5px] bg-[var(--brand-surface)]">
+          {categories.map(([name, image]) => <Link href={`/category?name=${encodeURIComponent(name)}`} key={name} className="group overflow-hidden rounded-lg border border-[var(--brand-border)] bg-white text-center">
+            <div className="m-1.5 aspect-square overflow-hidden rounded-md bg-[var(--brand-surface)]">
               <img src={image} alt={name} className="h-full w-full object-cover transition group-hover:scale-105"/>
             </div>
-            <b className="block h-8 px-1 pb-1 text-[9px] leading-[16px] text-[var(--brand-text)] md:h-auto md:text-sm">{name}</b>
+            <b className="block px-1 pb-2 text-[10px] leading-4 text-[var(--brand-text)] md:text-sm">{name}</b>
           </Link>)}
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1180px] px-3 pt-5 md:px-5 md:pt-8">
-        <div className="mb-3 flex items-center justify-between px-1"><h2 className="text-sm font-black md:text-xl">Promo Akhir Tahun</h2><Link href="/promo" className="text-[10px] font-bold text-[var(--brand-primary)] md:text-xs">Lihat Semua</Link></div>
-        <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3">
+      <section className="mx-auto max-w-[1180px] px-4 pt-8 md:px-5">
+        <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><h2 className="text-base font-black md:text-xl">Promo Akhir Tahun</h2><div className="hidden items-center gap-1 md:flex"><span className="countdown-digit">02</span><b>:</b><span className="countdown-digit">14</span><b>:</b><span className="countdown-digit">39</span></div></div><Link href="/promo" className="text-xs font-bold text-[var(--brand-primary)]">Lihat Semua</Link></div>
+        <div className="hide-scrollbar flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-4">
           {products.slice(0, 4).map((p) => <ProductCard key={p.id} product={p}/>)}
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1180px] px-3 pt-5 md:px-5 md:pt-8">
-        <div className="mb-3 flex items-center justify-between px-1"><h2 className="text-sm font-black md:text-xl">Rekomendasi Untuk Anda</h2><Link href="/category" className="text-[10px] font-bold text-[var(--brand-primary)] md:text-xs md:text-slate-500">Lihat semua</Link></div>
-        <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3">
+      <section className="mx-auto max-w-[1180px] px-4 pt-8 md:px-5">
+        <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-black md:text-xl">Rekomendasi Untuk Anda</h2><Link href="/category" className="text-xs font-bold text-slate-500">Lihat semua</Link></div>
+        <div className="hide-scrollbar flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-4">
           {products.slice(4).concat(products.slice(0, 4)).map((p) => <ProductCard key={p.id + "-rec"} product={p}/>)}
         </div>
       </section>
 
+      <section className="mx-auto max-w-[1180px] px-4 pt-8 md:px-5">
+        <h2 className="mb-4 text-lg font-black md:text-xl">Promo & Penawaran</h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            ["Flash Sale", "Diskon hingga 50%", "bg-red-500"],
+            ["Gratis Ongkir", "Area Jabodetabek", "bg-slate-800"],
+            ["Paket Hemat", "Buy 1 Get 1", "bg-blue-600"],
+            ["Loyalty Member", "Poin tiap belanja", "bg-amber-500"],
+          ].map(([title, sub, color]) => <Link href="/promo" key={title} className={`${color} relative min-h-[110px] overflow-hidden rounded-xl p-5 text-white`}><BadgePercent className="absolute right-3 top-3 opacity-30" size={44}/><b>{title}</b><p className="mt-2 text-xs text-white/80">{sub}</p></Link>)}
+        </div>
+      </section>
     </main>
   );
 }

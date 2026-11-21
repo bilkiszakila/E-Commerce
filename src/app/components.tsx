@@ -26,26 +26,26 @@ export function Header() {
           </div>
         </div>
       </div>
-      <div className="border-b border-[var(--brand-border)] bg-white text-[var(--brand-text)] md:bg-slate-950 md:text-white">
-        <div className="mx-auto flex h-[58px] max-w-[1180px] items-center gap-3 px-3 md:h-[68px] md:gap-4 md:px-5">
-          <button onClick={() => setOpen(true)} className="grid h-9 w-9 place-items-center md:hidden" aria-label="Buka menu"><Menu size={22} /></button>
-          <Link href="/" className="shrink-0 text-[15px] font-black tracking-tight md:text-xl">
-            <span className="text-[var(--brand-primary)] md:text-red-500">ADI</span> CETAK
+      <div className="bg-slate-950 text-white">
+        <div className="mx-auto flex h-[68px] max-w-[1180px] items-center gap-4 px-4">
+          <button onClick={() => setOpen(true)} className="md:hidden" aria-label="Buka menu"><Menu /></button>
+          <Link href="/" className="shrink-0 text-xl font-black tracking-tight">
+            <span className="text-red-500">ADI</span> CETAK
           </Link>
           <div className="hidden h-11 flex-1 items-center rounded-lg bg-white md:flex">
             <Search className="ml-4 text-slate-400" size={18} />
             <input className="h-full min-w-0 flex-1 px-3 text-sm text-slate-800 outline-none" placeholder="Cari banner, stiker, brosur, kaos..." />
             <button className="mr-1 h-9 rounded-md bg-red-500 px-5 text-sm font-bold">Cari</button>
           </div>
-          <button onClick={() => setSearchOpen(true)} className="ml-auto grid h-9 w-9 place-items-center rounded-full border border-[var(--brand-primary)] text-[var(--brand-primary)] md:hidden" aria-label="Cari"><Search size={17} /></button>
+          <button onClick={() => setSearchOpen(true)} className="ml-auto md:hidden" aria-label="Cari"><Search /></button>
           <Link href="/wishlist" className="hidden text-slate-300 md:block" aria-label="Favorit"><Heart size={22} /></Link>
           <Link href="/account" className="hidden items-center gap-2 md:flex">
             <UserRound size={22} />
             <span className="text-xs leading-tight">{loggedIn ? "Halo, Anda" : "Masuk / Daftar"}<br /><b>Akun Saya</b></span>
           </Link>
-          <Link href="/cart" className="relative ml-0 grid h-9 w-9 place-items-center rounded-full border border-[var(--brand-primary)] text-[var(--brand-primary)] md:ml-1 md:border-0 md:text-white" aria-label="Keranjang">
-            <ShoppingBag size={21} />
-            {cartCount > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">{cartCount}</span>}
+          <Link href="/cart" className="relative ml-1" aria-label="Keranjang">
+            <ShoppingBag size={25} />
+            {cartCount > 0 && <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold">{cartCount}</span>}
           </Link>
         </div>
       </div>
@@ -64,16 +64,12 @@ export function Header() {
 }
 
 export function Footer() {
-  return <footer className="mt-10 bg-slate-950 py-6 text-slate-300 md:mt-12 md:py-10">
-    <div className="mx-auto max-w-[1180px] px-4 text-[11px] md:grid md:grid-cols-4 md:gap-8 md:px-5 md:text-sm">
-      <div>
-        <div className="mb-2 text-lg font-black text-white md:mb-3 md:text-xl"><span className="text-[var(--brand-primary)] md:text-red-500">ADI</span> CETAK</div>
-        <p className="text-slate-400">Solusi cetak cepat untuk kebutuhan bisnis dan personal.</p>
-        <p className="mt-3 text-slate-400 md:mt-5">© 2026 Adi Cetak. All rights reserved.</p>
-      </div>
-      <div className="mt-5 md:mt-0"><b className="mb-2 block text-white">Belanja</b><p>Semua Produk</p><p>Promo</p><p>Produk Baru</p></div>
-      <div className="mt-5 md:mt-0"><b className="mb-2 block text-white">Bantuan</b><p>Cara Pemesanan</p><p>Pembayaran</p><p>Lacak Pesanan</p></div>
-      <div className="mt-5 md:mt-0"><b className="mb-2 block text-white">Hubungi Kami</b><p>WhatsApp: 0812-8888-9999</p><p>Senin–Sabtu, 08.00–17.00</p></div>
+  return <footer className="mt-12 border-t bg-slate-950 py-10 text-slate-300">
+    <div className="mx-auto grid max-w-[1180px] gap-8 px-5 text-sm md:grid-cols-4">
+      <div><div className="mb-3 text-xl font-black text-white"><span className="text-red-500">ADI</span> CETAK</div><p className="text-slate-400">Solusi cetak cepat untuk kebutuhan bisnis dan personal.</p></div>
+      <div><b className="mb-3 block text-white">Belanja</b><p>Semua Produk</p><p>Promo</p><p>Produk Baru</p></div>
+      <div><b className="mb-3 block text-white">Bantuan</b><p>Cara Pemesanan</p><p>Pembayaran</p><p>Lacak Pesanan</p></div>
+      <div><b className="mb-3 block text-white">Hubungi Kami</b><p>WhatsApp: 0812-8888-9999</p><p>Senin–Sabtu, 08.00–17.00</p></div>
     </div>
   </footer>;
 }
@@ -88,9 +84,9 @@ export function ProductCard({ product }: { product: import("./data").Product }) 
     : 0;
 
   return (
-    <article className="product-card relative w-full min-w-0 overflow-hidden rounded-[8px] border border-[var(--brand-border)] bg-white transition">
+    <article className="product-card relative w-[148px] overflow-hidden rounded-[10px] border border-[var(--brand-border)] bg-white transition">
       <Link href={`/product/${product.id}`} className="block">
-        <div className="relative m-1.5 aspect-square w-[calc(100%-12px)] overflow-hidden rounded-[5px] bg-[var(--brand-surface)]">
+        <div className="mx-2 mt-2 relative aspect-square w-[132px] overflow-hidden rounded-[7px] bg-[var(--brand-surface)]">
           <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
           {product.badge && (
             <span className="absolute left-2 top-2 rounded-[4px] bg-[var(--brand-accent)] px-2 py-1 text-[9px] font-bold leading-none text-white">
