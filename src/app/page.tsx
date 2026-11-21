@@ -28,7 +28,7 @@ export default function Home() {
     <main>
       <section className="mx-auto max-w-[1180px] px-4 pt-4 md:px-5">
         <div className="relative hidden md:block">
-          <div className="flex h-[290px] overflow-hidden rounded-xl bg-[#173b65]">
+          <div className="flex h-[290px] overflow-hidden rounded-xl bg-slate-950">
             <div className="relative z-10 flex w-[58%] flex-col justify-center px-10 text-white">
               <span className="mb-3 w-fit rounded-full bg-red-500 px-3 py-1 text-xs font-bold">PROMO NOVEMBER</span>
               <h1 className="max-w-md text-4xl font-black leading-tight">Bikin Brand Lebih Dilihat</h1>

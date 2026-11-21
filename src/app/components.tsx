@@ -26,7 +26,7 @@ export function Header() {
           </div>
         </div>
       </div>
-      <div className="bg-[#111827] text-white">
+      <div className="bg-slate-950 text-white">
         <div className="mx-auto flex h-[68px] max-w-[1180px] items-center gap-4 px-4">
           <button onClick={() => setOpen(true)} className="md:hidden" aria-label="Buka menu"><Menu /></button>
           <Link href="/" className="shrink-0 text-xl font-black tracking-tight">

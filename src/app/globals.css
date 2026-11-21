@@ -1,14 +1,36 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-primary: #1842D2;
+  --color-brand-secondary: #F1F4FD;
+  --color-brand-accent: #F1F4FD;
+  --color-brand-neutral: #FFFFFF;
+  --color-brand-surface: #E5F5F7;
+  --color-brand-text: #172338;
+  --color-brand-border: #C6CEDC;
+  --color-brand-success: #16694D;
+  --color-brand-danger: #E81C17;
+}
+
 :root {
-  --background: #f7f8fa;
-  --foreground: #111827;
+  --brand-primary: #1842D2;
+  --brand-secondary: #F1F4FD;
+  --brand-accent: #F1F4FD;
+  --brand-neutral: #FFFFFF;
+  --brand-surface: #E5F5F7;
+  --brand-text: #172338;
+  --brand-border: #C6CEDC;
+  --brand-success: #16694D;
+  --brand-danger: #E81C17;
+
+  --background: var(--brand-surface);
+  --foreground: var(--brand-text);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, Arial, Helvetica, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -26,8 +48,68 @@ button { cursor: pointer; }
   width: 28px;
   place-items: center;
   border-radius: 6px;
-  background: #111827;
+  background: var(--brand-text);
   color: white;
   font-size: 12px;
   font-weight: 800;
+}
+
+/* Brand style-guide overrides */
+.bg-red-500,
+.bg-red-600,
+.bg-blue-600 {
+  background-color: var(--brand-primary) !important;
+}
+
+.text-red-500,
+.text-red-400,
+.text-blue-600 {
+  color: var(--brand-primary) !important;
+}
+
+.border-red-500,
+.focus\:border-red-400:focus {
+  border-color: var(--brand-primary) !important;
+}
+
+.bg-red-50,
+.bg-blue-50 {
+  background-color: var(--brand-secondary) !important;
+}
+
+.bg-slate-950,
+.bg-slate-800,
+.bg-\[\#111827\] {
+  background-color: var(--brand-text) !important;
+}
+
+.border-slate-200,
+.border-slate-300 {
+  border-color: var(--brand-border) !important;
+}
+
+.text-slate-900,
+.text-slate-800,
+.text-slate-700 {
+  color: var(--brand-text) !important;
+}
+
+.bg-slate-100,
+.bg-slate-50,
+.bg-f7f8fa {
+  background-color: var(--brand-surface) !important;
+}
+
+.bg-emerald-100,
+.text-emerald-600,
+.text-green-600 {
+  color: var(--brand-success) !important;
+}
+
+.bg-red-100,
+.bg-amber-100,
+.text-red-600,
+.text-amber-600,
+.text-amber-700 {
+  color: var(--brand-danger) !important;
 }
