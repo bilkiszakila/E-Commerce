@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Heart, Minus, Plus, ShieldCheck, ShoppingCart, Truck } from "lucide-react";
-import { products } from "../../data";
 import { formatRupiah } from "../../components";
 import { useStore } from "../../store";
 import { getProductByIdOrSlug } from "../../../lib/supabase/data";
@@ -12,8 +11,7 @@ import { Product } from "../../data";
 function ProductContent() {
   const params = useParams();
   const router = useRouter();
-  const initialProduct = products.find((p) => p.id === params.id) || products[0];
-  const [product, setProduct] = useState<Product>(initialProduct);
+  const [product, setProduct] = useState<Product | null>(null);
   const [loadingProduct, setLoadingProduct] = useState(true);
   const [material, setMaterial] = useState("Standard");
   const [size, setSize] = useState("60 x 90 cm");
@@ -33,6 +31,7 @@ function ProductContent() {
   }, [params.id]);
 
   const unitPrice = useMemo(() => {
+    if (!product) return 0;
     const basePrice = product.discountActive
       ? Math.round(product.price * (1 - (product.discountPercent || 0) / 100))
       : product.price;
@@ -48,12 +47,16 @@ function ProductContent() {
   }, [product, material, size, customWidth, customHeight, finishing]);
 
   function add() {
+    if (!product) return;
     const key = `${product.id}-${material}-${size}-${customWidth}-${customHeight}-${finishing}`;
     addToCart({ key, product, quantity, variants: `${material} · ${size === "Custom" ? `${customWidth} x ${customHeight} cm` : size} · ${finishing}`, unitPrice });
   }
 
   if (loadingProduct) {
     return <main className="grid min-h-[50vh] place-items-center text-sm text-slate-500">Memuat produk...</main>;
+  }
+  if (!product) {
+    return <main className="grid min-h-[50vh] place-items-center px-4 text-center text-sm text-slate-500">Produk tidak ditemukan atau sudah tidak aktif.</main>;
   }
 
   return (

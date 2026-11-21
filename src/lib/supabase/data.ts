@@ -1,5 +1,13 @@
 import { supabase } from "./client";
-import { products as fallbackProducts, categories as fallbackCategories, Product } from "../../app/data";
+import { Product } from "../../app/data";
+
+export type Category = {
+  id: string;
+  name: string;
+  image: string;
+  thumbnailUrl: string;
+  active: boolean;
+};
 
 export async function getProducts(): Promise<Product[]> {
   const { data, error } = await supabase
@@ -8,7 +16,10 @@ export async function getProducts(): Promise<Product[]> {
     .eq("active", true)
     .order("created_at", { ascending: true });
 
-  if (error || !data?.length) return fallbackProducts;
+  if (error) {
+    console.error("Gagal memuat produk:", error.message);
+    return [];
+  }
   return data.map((item) => ({
     id: item.id,
     name: item.name,
@@ -27,14 +38,24 @@ export async function getProducts(): Promise<Product[]> {
   }));
 }
 
-export async function getCategories(): Promise<readonly (readonly [string, string])[]> {
+export async function getCategories(): Promise<Category[]> {
   const { data, error } = await supabase
     .from("categories")
-    .select("name,image")
+    .select("id,name,image,thumbnail_url,active")
+    .eq("active", true)
     .order("sort_order", { ascending: true });
 
-  if (error || !data?.length) return fallbackCategories;
-  return data.map((item) => [item.name, item.image || ""] as const);
+  if (error) {
+    console.error("Gagal memuat kategori:", error.message);
+    return [];
+  }
+  return data.map((item) => ({
+    id: item.id,
+    name: item.name,
+    image: item.image || "",
+    thumbnailUrl: item.thumbnail_url || item.image || "",
+    active: item.active,
+  }));
 }
 
 export async function getActiveBanner(): Promise<string | null> {
@@ -56,7 +77,11 @@ export async function getProductByIdOrSlug(value: string): Promise<Product | nul
     .eq("active", true)
     .maybeSingle();
 
-  if (error || !data) return null;
+  if (error) {
+    console.error("Gagal memuat detail produk:", error.message);
+    return null;
+  }
+  if (!data) return null;
   return {
     id: data.id,
     name: data.name,

@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ShieldCheck, Truck, RotateCcw, Headphones, ChevronRight, ChevronLeft, BadgePercent } from "lucide-react";
-import { categories, products } from "./data";
+import type { Product } from "./data";
+import type { Category } from "../lib/supabase/data";
 import { ProductCard } from "./components";
 import { getProducts, getCategories, getActiveBanner } from "../lib/supabase/data";
 
 export default function Home() {
   const [promoBanner, setPromoBanner] = useState("");
-  const [displayProducts, setDisplayProducts] = useState(products);
-  const [displayCategories, setDisplayCategories] = useState<readonly (readonly [string, string])[]>(categories);
+  const [displayProducts, setDisplayProducts] = useState<Product[]>([]);
+  const [displayCategories, setDisplayCategories] = useState<Category[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
   useEffect(() => {
     try {
@@ -23,6 +25,7 @@ export default function Home() {
       setDisplayProducts(items);
       setDisplayCategories(categoryItems);
       if (banner) setPromoBanner(banner);
+      setLoadingProducts(false);
     });
   }, []);
 
@@ -47,9 +50,9 @@ export default function Home() {
         <div className="mb-4 flex items-end justify-between"><h2 className="text-lg font-black md:text-xl">Kategori Produk</h2><Link href="/category" className="text-base font-bold text-red-500">Lihat semua</Link></div>
 
         <div className="hide-scrollbar grid grid-cols-3 gap-2 md:grid-cols-6 md:gap-3">
-          {displayCategories.map(([name, image]) => <Link href={`/category?name=${encodeURIComponent(name)}`} key={name} className="flex flex-col overflow-hidden rounded-lg p-2 border border-blue-100">
-            <img src={image} alt={name} className="aspect-square rounded-[8px] w-full object-cover transition group-hover:scale-105"/>
-            <b className="mt-2 text-center text-xs text-slate-950 md:text-sm">{name}</b>
+          {displayCategories.map((category) => <Link href={`/category?name=${encodeURIComponent(category.name)}`} key={category.id} className="flex flex-col overflow-hidden rounded-lg p-2 border border-blue-100">
+            {category.thumbnailUrl ? <img src={category.thumbnailUrl} alt={category.name} className="aspect-square rounded-[8px] w-full object-cover transition group-hover:scale-105"/> : <div className="aspect-square w-full rounded-[8px] bg-slate-100"/>}
+            <b className="mt-2 text-center text-xs text-slate-950 md:text-sm">{category.name}</b>
           </Link>)}
         </div>
       </section>
@@ -57,14 +60,14 @@ export default function Home() {
       <section className="mx-auto max-w-[1180px] px-4 pt-8 md:px-5">
         <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><h2 className="text-lg font-semibold md:text-xl">Flash Sale</h2><div className="hidden items-center gap-1 md:flex"><span className="countdown-digit">02</span><b>:</b><span className="countdown-digit">14</span><b>:</b><span className="countdown-digit">39</span></div></div><Link href="/promo" className="text-xs font-bold text-slate-500">Lihat semua</Link></div>
         <div className="hide-scrollbar flex gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-4 lg:grid-cols-6">
-          {displayProducts.slice(0, 4).map((p) => <ProductCard key={p.id} product={p} className="min-w-[158px] w-fit sm:min-w-0" />)}
+          {loadingProducts ? <p className="col-span-full py-6 text-xs text-slate-400">Memuat produk...</p> : displayProducts.length ? displayProducts.slice(0, 4).map((p) => <ProductCard key={p.id} product={p} className="min-w-[158px] w-fit sm:min-w-0" />) : <p className="col-span-full py-6 text-xs text-slate-400">Belum ada produk.</p>}
         </div>
       </section>
 
       <section className="mx-auto max-w-295 px-4 pt-8 md:px-5">
         <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-semibold md:text-xl">Rekomendasi Untuk Anda</h2><Link href="/category" className="text-xs font-bold text-slate-500">Lihat semua</Link></div>
         <div className="grid grid-cols-2 gap-2 pb-2 md:grid md:grid-cols-4 lg:grid-cols-6">
-          {displayProducts.slice(4).concat(displayProducts.slice(0, 4)).map((p) => <ProductCard key={p.id + "-rec"} product={p} className="min-w-[158px] w-fit sm:min-w-0" />)}
+          {loadingProducts ? <p className="col-span-full py-6 text-xs text-slate-400">Memuat rekomendasi...</p> : displayProducts.length ? displayProducts.slice(4).concat(displayProducts.slice(0, 4)).map((p) => <ProductCard key={p.id + "-rec"} product={p} className="min-w-[158px] w-fit sm:min-w-0" />) : <p className="col-span-full py-6 text-xs text-slate-400">Belum ada rekomendasi.</p>}
         </div>
       </section>
 
