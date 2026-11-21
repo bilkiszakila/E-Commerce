@@ -1,27 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, ShieldCheck, Truck, RotateCcw, Headphones, ChevronRight, ChevronLeft, BadgePercent } from "lucide-react";
+import { ShieldCheck, Truck, RotateCcw, Headphones, ChevronRight, ChevronLeft, BadgePercent } from "lucide-react";
 import { categories, products } from "./data";
-import { formatRupiah } from "./components";
-
-function ProductCard({ product }: { product: typeof products[number] }) {
-  return (
-    <Link href={`/product/${product.id}`} className="product-card relative min-w-[158px] overflow-hidden rounded-xl border border-slate-200 bg-white transition sm:min-w-0">
-      {product.badge && <span className="absolute left-2 top-2 z-10 rounded bg-red-500 px-2 py-1 text-[9px] font-bold text-white">{product.badge}</span>}
-      <button className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full bg-white/90 text-slate-500 shadow" aria-label="Favorit"><Heart size={14} /></button>
-      <div className="h-[145px] overflow-hidden bg-slate-100 sm:h-[180px]">
-        <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
-      </div>
-      <div className="p-3">
-        <p className="line-clamp-2 min-h-10 text-xs font-semibold leading-5 text-slate-800">{product.name}</p>
-        <p className="mt-2 text-base font-black text-red-500">{formatRupiah(product.price)}</p>
-        {product.oldPrice && <p className="text-[11px] text-slate-400"><span className="mr-1 line-through">{formatRupiah(product.oldPrice)}</span><span className="text-red-500">-{Math.round((1-product.price/product.oldPrice)*100)}%</span></p>}
-        <p className="mt-2 text-[10px] text-slate-500">★ {product.rating} · {product.sold}+ terjual</p>
-      </div>
-    </Link>
-  );
-}
+import { ProductCard } from "./components";
 
 export default function Home() {
   return (

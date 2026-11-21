@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { SlidersHorizontal } from "lucide-react";
 import { products, categories } from "../data";
-import { formatRupiah } from "../components";
+import { ProductCard } from "../components";
 
 function CategoryContent() {
   const search = useSearchParams();
@@ -36,10 +36,7 @@ function CategoryContent() {
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
             {visible.map((p)=>(
-              <Link href={`/product/${p.id}`} key={p.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                <img src={p.image} alt={p.name} className="h-36 w-full object-cover md:h-44"/>
-                <div className="p-3"><p className="line-clamp-2 min-h-10 text-xs font-bold">{p.name}</p><b className="mt-2 block text-sm text-red-500">{formatRupiah(p.price)}</b><p className="mt-1 text-[10px] text-slate-400">★ {p.rating} · {p.sold}+ terjual</p></div>
-              </Link>
+              <ProductCard key={p.id} product={p}/>
             ))}
           </div>
         </div>
