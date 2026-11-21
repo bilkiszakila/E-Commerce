@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useState, Suspense } from "react";
 import { useStore } from "../store";
 import { supabase } from "../../lib/supabase/client";
@@ -35,6 +36,12 @@ function LoginForm() {
 
     router.replace(search.get("next") || "/account");
   }
+  async function loginWithGoogle() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}${search.get("next") || "/account"}` },
+    });
+  }
   return <main className="mx-auto max-w-[1180px] px-4 py-10 md:px-5"><div className="mx-auto max-w-md rounded-xl bg-white p-6 shadow-sm">
     <h1 className="text-2xl font-black">Masuk ke Adi Cetak</h1><p className="mt-2 text-sm text-slate-500">Masuk untuk melanjutkan transaksi dengan aman.</p>
     <form onSubmit={submit} className="mt-6 space-y-4">
@@ -43,6 +50,8 @@ function LoginForm() {
       {error && <p className="text-xs font-bold text-red-500">{error}</p>}
       <button className="h-12 w-full rounded-lg bg-red-500 font-bold text-white">Masuk</button>
     </form>
+    <button type="button" onClick={loginWithGoogle} className="mt-3 h-12 w-full rounded-lg border font-bold">Daftar atau Masuk dengan Google</button>
+    <Link href={`/register${search.get("next") ? `?redirect=${encodeURIComponent(search.get("next") || "")}` : ""}`} className="mt-4 block text-center text-xs font-bold text-red-500">Belum punya akun? Daftar</Link>
   </div></main>;
 }
 

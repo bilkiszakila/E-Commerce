@@ -30,6 +30,30 @@ export default function CheckoutPage() {
   const [coordinates, setCoordinates] = useState<{lat:number;lng:number}|null>(null);
   const [addressErrors, setAddressErrors] = useState<Record<string, string>>({});
   useEffect(() => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) {
+        router.replace("/login?next=/checkout");
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name,name,phone,address")
+        .eq("id", data.session.user.id)
+        .maybeSingle();
+      if (profile) {
+        const address = (profile.address as Record<string,string>) || {};
+        setForm((old) => ({
+          ...old,
+          name: profile.full_name || profile.name || old.name,
+          phone: profile.phone || old.phone,
+          province: address.province || old.province,
+          city: address.city || old.city,
+          district: address.district || old.district,
+          postcode: address.postcode || old.postcode,
+          address: address.address || old.address,
+        }));
+      }
+    });
     getStoreSettings().then((settings) => {
       if (settings?.shippingOptions.length) setShippingOptions(settings.shippingOptions);
       if (settings?.bankOptions.length) {

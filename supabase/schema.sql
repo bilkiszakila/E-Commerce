@@ -60,7 +60,11 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
   name text,
+  full_name text,
   phone text,
+  address jsonb not null default '{}'::jsonb,
+  avatar_url text,
+  role text not null default 'user',
   is_admin boolean not null default false,
   updated_at timestamptz not null default now()
 );
@@ -131,6 +135,10 @@ create table if not exists public.store_settings (
 );
 
 alter table public.profiles add column if not exists is_admin boolean not null default false;
+alter table public.profiles add column if not exists full_name text;
+alter table public.profiles add column if not exists address jsonb not null default '{}'::jsonb;
+alter table public.profiles add column if not exists avatar_url text;
+alter table public.profiles add column if not exists role text not null default 'user';
 alter table public.profiles add column if not exists email text;
 alter table public.categories add column if not exists slug text;
 alter table public.categories add column if not exists thumbnail_url text;
@@ -158,14 +166,24 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, name, phone, email)
+  insert into public.profiles (id, name, full_name, phone, email, address, avatar_url, role, is_admin)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'name', ''),
+    coalesce(nullif(new.raw_user_meta_data->>'full_name', ''), nullif(new.raw_user_meta_data->>'name', ''), ''),
+    coalesce(nullif(new.raw_user_meta_data->>'full_name', ''), nullif(new.raw_user_meta_data->>'name', ''), ''),
     coalesce(new.raw_user_meta_data->>'phone', ''),
-    new.email
+    coalesce(new.email, ''),
+    '{}'::jsonb,
+    nullif(new.raw_user_meta_data->>'avatar_url', ''),
+    'user',
+    false
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update set
+    email = excluded.email,
+    full_name = coalesce(public.profiles.full_name, excluded.full_name),
+    name = coalesce(public.profiles.name, excluded.name),
+    avatar_url = coalesce(public.profiles.avatar_url, excluded.avatar_url),
+    updated_at = now();
   return new;
 end;
 $$;
@@ -233,6 +251,9 @@ drop policy if exists "Authenticated update product files" on storage.objects;
 drop policy if exists "Public read payment proofs" on storage.objects;
 drop policy if exists "Guest or user upload payment proofs" on storage.objects;
 drop policy if exists "Guest or user update payment proofs" on storage.objects;
+drop policy if exists "Public read avatars" on storage.objects;
+drop policy if exists "Authenticated upload avatars" on storage.objects;
+drop policy if exists "Authenticated update avatars" on storage.objects;
 
 create policy "Public read categories" on public.categories for select using (true);
 create policy "Public read products" on public.products for select using (active = true);
@@ -352,6 +373,10 @@ insert into storage.buckets (id, name, public)
 values ('payment-proofs', 'payment-proofs', true)
 on conflict (id) do update set public = true;
 
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do update set public = true;
+
 create policy "Public read promo banner files" on storage.objects
 for select using (bucket_id = 'promo-banners');
 
@@ -378,6 +403,15 @@ for insert to anon, authenticated with check (bucket_id = 'payment-proofs');
 
 create policy "Guest or user update payment proofs" on storage.objects
 for update to anon, authenticated using (bucket_id = 'payment-proofs') with check (bucket_id = 'payment-proofs');
+
+create policy "Public read avatars" on storage.objects
+for select using (bucket_id = 'avatars');
+
+create policy "Authenticated upload avatars" on storage.objects
+for insert to authenticated with check (bucket_id = 'avatars');
+
+create policy "Authenticated update avatars" on storage.objects
+for update to authenticated using (bucket_id = 'avatars') with check (bucket_id = 'avatars');
 
 insert into public.categories (name, image, sort_order) values
   ('Banner & Spanduk', 'https://images.unsplash.com/photo-1557426272-fc759fdf7a8d?auto=format&fit=crop&w=500&q=80', 1),

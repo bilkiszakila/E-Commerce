@@ -3,10 +3,22 @@
 import Link from "next/link";
 import { Minus, Plus, Trash2, MapPin } from "lucide-react";
 import { useStore } from "../store";
+import { supabase } from "../../lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { formatRupiah } from "../components";
 
 export default function CartPage() {
   const { cart, updateQuantity, removeItem, cartTotal } = useStore();
+  const router = useRouter();
+  async function startCheckout() {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      alert("Silakan login atau daftar terlebih dahulu untuk melanjutkan checkout.");
+      router.push("/login?next=/checkout");
+      return;
+    }
+    router.push("/checkout");
+  }
   return (
     <main className="mx-auto max-w-[1180px] px-4 py-6 md:px-5">
       <h1 className="mb-5 text-xl font-black md:text-2xl">Keranjang Belanja</h1>
@@ -30,7 +42,7 @@ export default function CartPage() {
           <h2 className="font-black">Ringkasan Belanja</h2>
           <div className="mt-4 space-y-3 border-b pb-4 text-sm"><div className="flex justify-between"><span className="text-slate-500">Subtotal</span><b>{formatRupiah(cartTotal)}</b></div><div className="flex justify-between"><span className="text-slate-500">Diskon</span><b className="text-red-500">Rp0</b></div></div>
           <div className="mt-4 flex justify-between"><b>Total</b><b className="text-xl text-red-500">{formatRupiah(cartTotal)}</b></div>
-          <Link href="/checkout" className="mt-5 block rounded-lg bg-red-500 py-3 text-center text-sm font-bold text-white">Checkout</Link>
+          <button onClick={startCheckout} className="mt-5 block w-full rounded-lg bg-red-500 py-3 text-center text-sm font-bold text-white">Checkout</button>
           <p className="mt-3 flex items-center justify-center gap-1 text-[11px] text-slate-400"><MapPin size={13}/> Ongkir dihitung saat checkout</p>
         </aside>
       </div>}
