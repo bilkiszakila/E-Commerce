@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CreditCard, MapPin, Navigation, QrCode, ShieldCheck, Tag } from "lucide-react";
 import { useStore } from "../store";
 import { formatRupiah } from "../components";
-import { findVoucher, getStoreSettings, ShippingOption } from "../../lib/supabase/data";
+import { findVoucher, getStoreSettings, ShippingOption, BankOption } from "../../lib/supabase/data";
 import { supabase } from "../../lib/supabase/client";
 
 export default function CheckoutPage() {
@@ -24,9 +24,16 @@ export default function CheckoutPage() {
     { name: "J&T Express", description: "Estimasi 1–2 hari", price: 19000 },
     { name: "Ambil Sendiri", description: "Semarang Store", price: 0 },
   ]);
+  const [bankOptions, setBankOptions] = useState<BankOption[]>([]);
+  const [selectedBank, setSelectedBank] = useState("");
+  const [addressErrors, setAddressErrors] = useState<Record<string, string>>({});
   useEffect(() => {
     getStoreSettings().then((settings) => {
       if (settings?.shippingOptions.length) setShippingOptions(settings.shippingOptions);
+      if (settings?.bankOptions.length) {
+        setBankOptions(settings.bankOptions);
+        setSelectedBank(settings.bankOptions[0].name);
+      }
     });
   }, []);
   const selectedShipping = shippingOptions.find((option) => option.name === courier) || shippingOptions[0];
@@ -58,7 +65,24 @@ export default function CheckoutPage() {
   }
 
   async function pay() {
-    if (!form.name || !form.phone || !form.address || !form.district) { alert("Lengkapi nama, nomor telepon, kecamatan, dan alamat penerima."); return; }
+    const errors: Record<string, string> = {};
+    const phoneDigits = form.phone.replace(/\D/g, "");
+    if (form.name.trim().length < 3) errors.name = "Nama penerima minimal 3 karakter.";
+    if (!(form.phone.startsWith("08") || form.phone.startsWith("+62")) || phoneDigits.length < 10 || phoneDigits.length > 14) {
+      errors.phone = "Nomor WhatsApp harus diawali 08 atau +62 dan berisi 10–14 digit.";
+    }
+    if (!form.province) errors.province = "Provinsi wajib dipilih.";
+    if (!form.city) errors.city = "Kota/Kabupaten wajib dipilih.";
+    if (!form.district) errors.district = "Kecamatan wajib dipilih.";
+    if (!/^\d{5}$/.test(form.postcode)) errors.postcode = "Kode Pos harus 5 digit angka.";
+    if (form.address.trim().length < 15) errors.address = "Alamat lengkap minimal 15 karakter.";
+    if (payment === "bank" && !selectedBank) errors.payment = "Pilih bank tujuan transfer.";
+    setAddressErrors(errors);
+    if (Object.keys(errors).length) {
+      const firstError = Object.values(errors)[0];
+      alert(firstError);
+      return;
+    }
     setLoading(true);
     const orderId = `AC-${Date.now().toString().slice(-8)}`;
     const { data: sessionData } = await supabase.auth.getSession();
@@ -69,7 +93,7 @@ export default function CheckoutPage() {
       user_id: userId,
       status: "pending",
       courier,
-      payment,
+      payment: payment === "bank" ? `Transfer Bank - ${selectedBank}` : "QRIS",
       subtotal: cartTotal,
       shipping,
       discount,
@@ -122,14 +146,24 @@ export default function CheckoutPage() {
           <section className="rounded-xl bg-white p-5">
             <h2 className="flex items-center gap-2 font-black"><MapPin size={18} className="text-red-500"/> Alamat Pengiriman</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Field label="Nama Penerima" value={form.name} onChange={(v) => setForm({...form,name:v})}/>
-              <Field label="Nomor WhatsApp" value={form.phone} onChange={(v) => setForm({...form,phone:v})}/>
-              <Field label="Provinsi" value={form.province} onChange={(v) => setForm({...form,province:v})}/>
-              <Field label="Kota / Kabupaten" value={form.city} onChange={(v) => setForm({...form,city:v})}/>
-              <Field label="Kecamatan" value={form.district} onChange={(v) => setForm({...form,district:v})}/>
-              <Field label="Kode Pos" value={form.postcode} onChange={(v) => setForm({...form,postcode:v})}/>
+              <Field label="Nama Penerima" value={form.name} onChange={(v) => setForm({...form,name:v})} error={addressErrors.name}/>
+              <Field label="Nomor WhatsApp" value={form.phone} onChange={(v) => setForm({...form,phone:v})} error={addressErrors.phone}/>
+              <label className="text-xs font-bold text-slate-600">Provinsi
+                <select value={form.province} onChange={(e)=>setForm({...form,province:e.target.value,city:"",district:""})} className="mt-2 h-11 w-full rounded-lg border px-3 font-normal"><option value="">Pilih Provinsi</option><option>DKI Jakarta</option><option>Jawa Barat</option><option>Jawa Tengah</option><option>Jawa Timur</option><option>Banten</option><option>DI Yogyakarta</option></select>
+                {addressErrors.province && <span className="mt-1 block text-[11px] text-red-500">{addressErrors.province}</span>}
+              </label>
+              <label className="text-xs font-bold text-slate-600">Kota / Kabupaten
+                <select value={form.city} onChange={(e)=>setForm({...form,city:e.target.value,district:""})} className="mt-2 h-11 w-full rounded-lg border px-3 font-normal"><option value="">Pilih Kota/Kabupaten</option>{form.province === "DKI Jakarta" ? ["Jakarta Selatan","Jakarta Barat","Jakarta Timur","Jakarta Utara","Jakarta Pusat"].map((city)=><option key={city}>{city}</option>) : ["Kota/Kabupaten Utama","Kabupaten Lain"].map((city)=><option key={city}>{city}</option>)}</select>
+                {addressErrors.city && <span className="mt-1 block text-[11px] text-red-500">{addressErrors.city}</span>}
+              </label>
+              <label className="text-xs font-bold text-slate-600">Kecamatan
+                <select value={form.district} onChange={(e)=>setForm({...form,district:e.target.value})} className="mt-2 h-11 w-full rounded-lg border px-3 font-normal"><option value="">Pilih Kecamatan</option>{["Setiabudi","Tebet","Cilandak","Kebayoran Baru","Menteng","Kecamatan Utama","Kecamatan Lain"].map((district)=><option key={district}>{district}</option>)}</select>
+                {addressErrors.district && <span className="mt-1 block text-[11px] text-red-500">{addressErrors.district}</span>}
+              </label>
+              <Field label="Kode Pos" value={form.postcode} onChange={(v) => setForm({...form,postcode:v.replace(/\D/g,"").slice(0,5)})} error={addressErrors.postcode}/>
               <label className="sm:col-span-2 text-xs font-bold text-slate-600">Alamat Lengkap
-                <textarea value={form.address} onChange={(e) => setForm({...form,address:e.target.value})} className="mt-2 h-20 w-full resize-none rounded-lg border px-3 py-3 font-normal outline-none focus:border-red-400" placeholder="Nama jalan, nomor rumah, gedung, patokan..."/>
+                <textarea value={form.address} onChange={(e) => setForm({...form,address:e.target.value})} className="mt-2 h-20 w-full resize-none rounded-lg border px-3 py-3 font-normal outline-none focus:border-red-400" placeholder="Nama jalan, RT/RW, nomor rumah, gedung, patokan..."/>
+                {addressErrors.address && <span className="mt-1 block text-[11px] text-red-500">{addressErrors.address}</span>}
               </label>
               <button className="flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 text-xs font-bold sm:col-span-2"><Navigation size={16}/> Gunakan Lokasi Saat Ini</button>
             </div>
@@ -168,6 +202,13 @@ export default function CheckoutPage() {
                 <span className="mt-1 block text-xs text-slate-500">Transfer manual dan unggah bukti pembayaran untuk dicek admin.</span>
               </label>
             </div>
+            {payment === "bank" && <div className="mt-3"><label className="text-xs font-bold text-slate-600">Pilih Bank Tujuan
+              <select value={selectedBank} onChange={(e)=>setSelectedBank(e.target.value)} className="mt-2 h-11 w-full rounded-lg border px-3 text-sm font-normal">
+                <option value="">Pilih Bank</option>
+                {bankOptions.map((bank)=><option key={bank.name} value={bank.name}>{bank.name} — {bank.accountNumber}</option>)}
+              </select>
+              {addressErrors.payment && <span className="mt-1 block text-[11px] text-red-500">{addressErrors.payment}</span>}
+            </label></div>}
           </section>
         </div>
         <aside className="h-fit rounded-xl bg-white p-5">
@@ -198,6 +239,7 @@ export default function CheckoutPage() {
                 <b className="mt-1 block text-xs">Transfer Bank</b>
               </label>
             </div>
+            {payment === "bank" && <div className="mt-3"><select value={selectedBank} onChange={(e)=>setSelectedBank(e.target.value)} className="h-10 w-full rounded-lg border px-3 text-xs"><option value="">Pilih Bank</option>{bankOptions.map((bank)=><option key={bank.name} value={bank.name}>{bank.name} — {bank.accountNumber}</option>)}</select>{addressErrors.payment && <p className="mt-1 text-[11px] text-red-500">{addressErrors.payment}</p>}</div>}
           </div>
           <div className="mt-5 space-y-3 border-t pt-4 text-sm"><div className="flex justify-between"><span className="text-slate-500">Subtotal</span><b>{formatRupiah(cartTotal)}</b></div><div className="flex justify-between"><span className="text-slate-500">Ongkir</span><b>{formatRupiah(shipping)}</b></div>{discount > 0 && <div className="flex justify-between"><span className="text-slate-500">Diskon</span><b className="text-emerald-600">-{formatRupiah(discount)}</b></div>}<div className="flex justify-between border-t pt-3"><b>Total</b><b className="text-xl text-red-500">{formatRupiah(total)}</b></div></div>
           <button onClick={pay} disabled={loading} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-red-500 text-sm font-bold text-white disabled:opacity-60"><ShieldCheck size={18}/>{loading ? "Memproses..." : payment === "qris" ? "Bayar QRIS dengan Xendit" : "Lanjutkan Transfer Bank"}</button>
@@ -208,6 +250,6 @@ export default function CheckoutPage() {
   );
 }
 
-function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string)=>void }) {
-  return <label className="text-xs font-bold text-slate-600">{label}<input value={value} onChange={(e)=>onChange(e.target.value)} className="mt-2 h-11 w-full rounded-lg border px-3 font-normal outline-none focus:border-red-400"/></label>;
+function Field({ label, value, onChange, error }: { label: string; value: string; onChange: (v: string)=>void; error?: string }) {
+  return <label className="text-xs font-bold text-slate-600">{label}<input value={value} onChange={(e)=>onChange(e.target.value)} className={`mt-2 h-11 w-full rounded-lg border px-3 font-normal outline-none focus:border-red-400 ${error ? "border-red-500" : ""}`}/>{error && <span className="mt-1 block text-[11px] text-red-500">{error}</span>}</label>;
 }

@@ -121,17 +121,24 @@ export type ShippingOption = {
   price: number;
 };
 
+export type BankOption = {
+  name: string;
+  accountName: string;
+  accountNumber: string;
+};
+
 export type StoreSettings = {
   bankName: string;
   bankAccountName: string;
   bankAccountNumber: string;
+  bankOptions: BankOption[];
   shippingOptions: ShippingOption[];
 };
 
 export async function getStoreSettings(): Promise<StoreSettings | null> {
   const { data, error } = await supabase
     .from("store_settings")
-    .select("bank_name,bank_account_name,bank_account_number,shipping_options")
+    .select("bank_name,bank_account_name,bank_account_number,bank_options,shipping_options")
     .eq("id", 1)
     .maybeSingle();
 
@@ -145,6 +152,7 @@ export async function getStoreSettings(): Promise<StoreSettings | null> {
     bankName: data.bank_name,
     bankAccountName: data.bank_account_name,
     bankAccountNumber: data.bank_account_number,
+    bankOptions: Array.isArray(data.bank_options) ? data.bank_options : [],
     shippingOptions: Array.isArray(data.shipping_options)
       ? data.shipping_options
       : [],

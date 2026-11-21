@@ -117,6 +117,7 @@ create table if not exists public.store_settings (
   bank_name text not null default 'BCA',
   bank_account_name text not null default 'PT Adi Cetak',
   bank_account_number text not null default '1234567890',
+  bank_options jsonb not null default '[]'::jsonb,
   shipping_options jsonb not null default '[
     {"name":"JNE Reg","description":"Estimasi 2–3 hari","price":17000},
     {"name":"J&T Express","description":"Estimasi 1–2 hari","price":19000},
@@ -140,6 +141,7 @@ alter table public.vouchers add column if not exists usage_limit integer;
 alter table public.vouchers add column if not exists used_count integer not null default 0;
 alter table public.vouchers add column if not exists starts_at timestamptz;
 alter table public.vouchers add column if not exists expires_at timestamptz;
+alter table public.store_settings add column if not exists bank_options jsonb not null default '[]'::jsonb;
 
 create or replace function public.handle_new_auth_user()
 returns trigger

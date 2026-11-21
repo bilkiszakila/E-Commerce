@@ -34,6 +34,11 @@ function PaymentContent() {
     });
   }, [params.id]);
 
+  const transferBankName = order?.payment?.startsWith("Transfer Bank - ")
+    ? order.payment.replace("Transfer Bank - ", "")
+    : "";
+  const transferBank = storeSettings?.bankOptions.find((bank) => bank.name === transferBankName);
+
   if (loadingOrder) return <main className="grid min-h-[50vh] place-items-center text-sm text-slate-500">Memuat pesanan...</main>;
   if (!order) return <main className="grid min-h-[50vh] place-items-center px-4 text-center text-sm text-slate-500">Pesanan tidak ditemukan.</main>;
   function copy() { navigator.clipboard?.writeText(params.id as string); }
@@ -42,10 +47,10 @@ function PaymentContent() {
     <h1 className="mt-4 text-xl font-black">Pesanan Menunggu Pembayaran</h1>
     <p className="mt-2 text-sm text-slate-500">Xendit Invoice dibuat untuk pesanan <b>{params.id}</b>.</p>
     <div className="mt-5 rounded-lg bg-slate-50 p-4 text-left text-sm"><div className="flex justify-between"><span className="text-slate-500">No. Pesanan</span><button onClick={copy} className="flex items-center gap-1 font-bold">{params.id}<Copy size={13}/></button></div><div className="mt-3 flex justify-between"><span className="text-slate-500">Total Bayar</span><b className="text-red-500">{formatRupiah(order?.total || 0)}</b></div><div className="mt-3 flex justify-between"><span className="text-slate-500">Pengiriman</span><b>{order?.courier || "-"}</b></div>    {order.voucher_code && <div className="mt-3 flex justify-between"><span className="text-slate-500">Voucher</span><b>{order.voucher_code}</b></div>}</div>
-    {order?.payment === "bank" ? (
+    {order.payment === "bank" || order.payment?.startsWith("Transfer Bank -") ? (
       <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-left">
         <b className="text-sm">Instruksi Transfer</b>
-        <div className="mt-3 space-y-2 text-sm"><p>Bank: <b>{storeSettings?.bankName || "-"}</b></p><p>Atas nama: <b>{storeSettings?.bankAccountName || "-"}</b></p><div className="flex items-center justify-between"><span>Nomor rekening:</span><b className="text-base">{storeSettings?.bankAccountNumber || "-"}</b></div></div>
+        <div className="mt-3 space-y-2 text-sm"><p>Bank: <b>{transferBank?.name || storeSettings?.bankName || "-"}</b></p><p>Atas nama: <b>{transferBank?.accountName || storeSettings?.bankAccountName || "-"}</b></p><div className="flex items-center justify-between"><span>Nomor rekening:</span><b className="text-base">{transferBank?.accountNumber || storeSettings?.bankAccountNumber || "-"}</b></div></div>
         <label className="mt-4 flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white text-xs font-bold"><Upload size={16}/> {proof ? "Bukti dipilih" : "Unggah Bukti Transfer"}<input type="file" accept="image/*,.pdf" className="hidden" onChange={(e)=>setProof(e.target.files?.[0]?.name || "")}/></label>
         <button onClick={()=>alert(proof ? "Bukti transfer diterima. Pesanan menunggu pemeriksaan admin." : "Silakan unggah bukti transfer terlebih dahulu.")} className="mt-3 h-11 w-full rounded-lg bg-blue-600 text-sm font-bold text-white">Konfirmasi Pembayaran</button>
       </div>

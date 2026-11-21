@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ImagePlus, Save } from "lucide-react";
 import { supabase } from "../../../lib/supabase/client";
-import { getStoreSettings, ShippingOption } from "../../../lib/supabase/data";
+import { getStoreSettings, ShippingOption, BankOption } from "../../../lib/supabase/data";
 
 type BankSettings = { bank: string; accountName: string; accountNumber: string };
 type PromoBannerSettings = { dataUrl: string; name: string };
@@ -15,6 +15,9 @@ export default function AdminSettingsPage() {
     { name: "JNE Reg", description: "Estimasi 2–3 hari", price: 17000 },
     { name: "J&T Express", description: "Estimasi 1–2 hari", price: 19000 },
     { name: "Ambil Sendiri", description: "Semarang Store", price: 0 },
+  ]);
+  const [bankOptions, setBankOptions] = useState<BankOption[]>([
+    { name: "BCA", accountName: "PT Adi Cetak", accountNumber: "1234567890" },
   ]);
   const [promoBanner, setPromoBanner] = useState<PromoBannerSettings>(() => {
     if (typeof window === "undefined") return { dataUrl: "", name: "" };
@@ -28,6 +31,7 @@ export default function AdminSettingsPage() {
       if (!settings) return;
       setBank({ bank: settings.bankName, accountName: settings.bankAccountName, accountNumber: settings.bankAccountNumber });
       if (settings.shippingOptions.length) setShippingOptions(settings.shippingOptions);
+      if (settings.bankOptions.length) setBankOptions(settings.bankOptions);
     });
   }, []);
 
@@ -38,6 +42,7 @@ export default function AdminSettingsPage() {
       bank_name: bank.bank,
       bank_account_name: bank.accountName,
       bank_account_number: bank.accountNumber,
+      bank_options: bankOptions,
       shipping_options: shippingOptions,
       updated_at: new Date().toISOString(),
     }, { onConflict: "id" });
@@ -89,6 +94,17 @@ export default function AdminSettingsPage() {
             <Field label="Nama Bank" value={bank.bank} onChange={(bankName) => setBank({ ...bank, bank: bankName })}/>
             <Field label="Nama Pemilik Rekening" value={bank.accountName} onChange={(accountName) => setBank({ ...bank, accountName })}/>
             <Field label="Nomor Rekening" value={bank.accountNumber} onChange={(accountNumber) => setBank({ ...bank, accountNumber })}/>
+            <div className="border-t pt-3">
+              <p className="mb-2 text-xs font-bold text-slate-600">Pilihan Bank Tujuan</p>
+              {bankOptions.map((option, index) => (
+                <div key={`${option.name}-${index}`} className="mb-2 grid gap-2 rounded-lg border p-3 sm:grid-cols-3">
+                  <input aria-label="Nama bank" value={option.name} onChange={(e)=>setBankOptions((old)=>old.map((item,i)=>i===index?{...item,name:e.target.value}:item))} className="h-10 rounded border px-3 text-sm" placeholder="Nama bank"/>
+                  <input aria-label="Atas nama rekening" value={option.accountName} onChange={(e)=>setBankOptions((old)=>old.map((item,i)=>i===index?{...item,accountName:e.target.value}:item))} className="h-10 rounded border px-3 text-sm" placeholder="Atas nama"/>
+                  <input aria-label="Nomor rekening" value={option.accountNumber} onChange={(e)=>setBankOptions((old)=>old.map((item,i)=>i===index?{...item,accountNumber:e.target.value}:item))} className="h-10 rounded border px-3 text-sm" placeholder="Nomor rekening"/>
+                </div>
+              ))}
+              <button type="button" onClick={()=>setBankOptions((old)=>[...old,{name:"",accountName:"",accountNumber:""}])} className="h-10 w-full rounded-lg border border-dashed text-xs font-bold text-slate-500">+ Tambah Bank</button>
+            </div>
           </div>
         </section>
         <section className="rounded-xl bg-white p-5">

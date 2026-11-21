@@ -7,6 +7,12 @@ create table if not exists public.store_settings (
   bank_name text not null default 'BCA',
   bank_account_name text not null default 'PT Adi Cetak',
   bank_account_number text not null default '1234567890',
+  bank_options jsonb not null default '[
+    {"name":"BCA","accountName":"PT Adi Cetak","accountNumber":"1234567890"},
+    {"name":"Mandiri","accountName":"PT Adi Cetak","accountNumber":"9876543210"},
+    {"name":"BNI","accountName":"PT Adi Cetak","accountNumber":"1122334455"},
+    {"name":"BRI","accountName":"PT Adi Cetak","accountNumber":"001122334455"}
+  ]'::jsonb,
   shipping_options jsonb not null default '[
     {"name":"JNE Reg","description":"Estimasi 2–3 hari","price":17000},
     {"name":"J&T Express","description":"Estimasi 1–2 hari","price":19000},
@@ -15,17 +21,27 @@ create table if not exists public.store_settings (
   updated_at timestamptz not null default now()
 );
 
+alter table public.store_settings
+  add column if not exists bank_options jsonb not null default '[]'::jsonb;
+
 insert into public.store_settings (
   id,
   bank_name,
   bank_account_name,
   bank_account_number,
+  bank_options,
   shipping_options
 ) values (
   1,
   'BCA',
   'PT Adi Cetak',
   '1234567890',
+  '[
+    {"name":"BCA","accountName":"PT Adi Cetak","accountNumber":"1234567890"},
+    {"name":"Mandiri","accountName":"PT Adi Cetak","accountNumber":"9876543210"},
+    {"name":"BNI","accountName":"PT Adi Cetak","accountNumber":"1122334455"},
+    {"name":"BRI","accountName":"PT Adi Cetak","accountNumber":"001122334455"}
+  ]'::jsonb,
   '[
     {"name":"JNE Reg","description":"Estimasi 2–3 hari","price":17000},
     {"name":"J&T Express","description":"Estimasi 1–2 hari","price":19000},
