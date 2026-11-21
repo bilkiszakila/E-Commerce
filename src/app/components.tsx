@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, Heart, MapPin, Menu, Search, ShoppingBag, Star, UserRound, X } from "lucide-react";
+import { ChevronDown, Heart, MapPin, Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { useStore } from "./store";
 import { categories } from "./data";
@@ -76,50 +76,4 @@ export function Footer() {
 
 export function formatRupiah(value: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(value);
-}
-
-export function ProductCard({ product }: { product: import("./data").Product }) {
-  const discount = product.oldPrice
-    ? Math.round((1 - product.price / product.oldPrice) * 100)
-    : 0;
-
-  return (
-    <article className="product-card relative min-w-[148px] overflow-hidden rounded-lg border border-[var(--brand-border)] bg-white transition sm:min-w-0">
-      <Link href={`/product/${product.id}`} className="block">
-        <div className="relative aspect-square w-full overflow-hidden bg-[var(--brand-surface)]">
-          <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
-          {product.badge && (
-            <span className="absolute left-2 top-2 rounded bg-[var(--brand-accent)] px-2 py-1 text-[9px] font-bold text-white">
-              {product.badge}
-            </span>
-          )}
-        </div>
-        <div className="p-2.5">
-          <p className="line-clamp-2 min-h-10 text-xs font-semibold leading-5 text-[var(--brand-text)]">
-            {product.name}
-          </p>
-          <p className="mt-1.5 text-sm font-black text-[var(--brand-primary)]">
-            {formatRupiah(product.price)}
-          </p>
-          {product.oldPrice && (
-            <p className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400">
-              <span className="line-through">{formatRupiah(product.oldPrice)}</span>
-              {discount > 0 && <span className="text-[var(--brand-danger)]">-{discount}%</span>}
-            </p>
-          )}
-          <p className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-500">
-            <Star size={10} fill="#FF7401" className="text-[var(--brand-accent)]" />
-            {product.rating} · {product.sold}+ terjual
-          </p>
-        </div>
-      </Link>
-      <button
-        type="button"
-        className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full border border-white/70 bg-white/95 text-slate-500 shadow-sm"
-        aria-label={`Tambah ${product.name} ke favorit`}
-      >
-        <Heart size={14} />
-      </button>
-    </article>
-  );
 }
