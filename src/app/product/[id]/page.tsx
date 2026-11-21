@@ -1,16 +1,20 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Heart, Minus, Plus, ShieldCheck, ShoppingCart, Truck } from "lucide-react";
 import { products } from "../../data";
 import { formatRupiah } from "../../components";
 import { useStore } from "../../store";
+import { getProductByIdOrSlug } from "../../../lib/supabase/data";
+import { Product } from "../../data";
 
 function ProductContent() {
   const params = useParams();
   const router = useRouter();
-  const product = products.find((p) => p.id === params.id) || products[0];
+  const initialProduct = products.find((p) => p.id === params.id) || products[0];
+  const [product, setProduct] = useState<Product>(initialProduct);
+  const [loadingProduct, setLoadingProduct] = useState(true);
   const [material, setMaterial] = useState("Standard");
   const [size, setSize] = useState("60 x 90 cm");
   const [customWidth, setCustomWidth] = useState("60");
@@ -19,8 +23,20 @@ function ProductContent() {
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useStore();
 
+  useEffect(() => {
+    const value = Array.isArray(params.id) ? params.id[0] : params.id;
+    if (!value) return;
+    getProductByIdOrSlug(value).then((item) => {
+      if (item) setProduct(item);
+      setLoadingProduct(false);
+    });
+  }, [params.id]);
+
   const unitPrice = useMemo(() => {
-    let price = product.price;
+    const basePrice = product.discountActive
+      ? Math.round(product.price * (1 - (product.discountPercent || 0) / 100))
+      : product.price;
+    let price = basePrice;
     if (material === "Premium") price *= 1.35;
     if (material === "Outdoor") price *= 1.6;
     if (size === "120 x 160 cm") price *= 2.2;
@@ -34,6 +50,10 @@ function ProductContent() {
   function add() {
     const key = `${product.id}-${material}-${size}-${customWidth}-${customHeight}-${finishing}`;
     addToCart({ key, product, quantity, variants: `${material} · ${size === "Custom" ? `${customWidth} x ${customHeight} cm` : size} · ${finishing}`, unitPrice });
+  }
+
+  if (loadingProduct) {
+    return <main className="grid min-h-[50vh] place-items-center text-sm text-slate-500">Memuat produk...</main>;
   }
 
   return (
@@ -54,7 +74,12 @@ function ProductContent() {
           <div className="mt-5 border-y py-5">
             <p className="text-sm text-slate-500">Harga mulai</p>
             <p className="mt-1 text-3xl font-black text-red-500">{formatRupiah(unitPrice)} <span className="text-xs font-normal text-slate-400">/ item</span></p>
-            {product.oldPrice && <p className="text-xs text-slate-400">Harga normal <span className="line-through">{formatRupiah(product.oldPrice)}</span></p>}
+            {(product.oldPrice || product.discountActive) && (
+              <p className="text-xs text-slate-400">
+                Harga normal <span className="line-through">{formatRupiah(product.oldPrice || product.price)}</span>
+                {product.discountActive && <span className="ml-2 font-bold text-orange-500">-{product.discountPercent || 0}%</span>}
+              </p>
+            )}
           </div>
 
           <div className="mt-5 space-y-5">

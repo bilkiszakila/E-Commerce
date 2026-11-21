@@ -10,6 +10,9 @@ import { categories, products } from "./data";
 import brandLogo from "./images/brand-logo.svg";
 
 export function ProductCard({ product, className = "" }: { product: typeof products[number]; className?: string }) {
+  const effectivePrice = product.discountActive
+    ? Math.round(product.price * (1 - (product.discountPercent || 0) / 100))
+    : product.price;
   return (
     <Link href={`/product/${product.id}`} className={`product-card relative overflow-hidden rounded-xl border border-slate-200 bg-white p-2 transition ${className}`}>
       {product.badge && <span className="absolute left-4 top-4 z-10 rounded bg-orange-500 px-2 py-1 text-[9px] font-bold text-white">{product.badge}</span>}
@@ -19,11 +22,15 @@ export function ProductCard({ product, className = "" }: { product: typeof produ
       </div>
       <div>
         <p className="mt-1 line-clamp-2 min-h-10 text-xs font-semibold leading-5 text-slate-800">{product.name}</p>
-        <p className="mt-2 text-base font-black text-red-500">{formatRupiah(product.price)}</p>
-        {product.oldPrice && (
+        <p className="mt-2 text-base font-black text-red-500">{formatRupiah(effectivePrice)}</p>
+        {(product.oldPrice || product.discountActive) && (
           <p className="text-[11px] text-slate-400">
-            <span className="mr-1 line-through">{formatRupiah(product.oldPrice)}</span>
-            <span className="text-orange-500">-{Math.round((1 - product.price / product.oldPrice) * 100)}%</span>
+            <span className="mr-1 line-through">{formatRupiah(product.oldPrice || product.price)}</span>
+            <span className="text-orange-500">
+              -{product.discountActive
+                ? (product.discountPercent || 0)
+                : Math.round((1 - product.price / (product.oldPrice || product.price)) * 100)}%
+            </span>
           </p>
         )}
         <p className="mt-2 text-[10px] text-slate-500">★ {product.rating} · {product.sold}+ terjual</p>
