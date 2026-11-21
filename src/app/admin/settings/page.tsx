@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ImagePlus, Save } from "lucide-react";
 import { supabase } from "../../../lib/supabase/client";
-import { getStoreSettings, ShippingOption, BankOption } from "../../../lib/supabase/data";
+import { getStoreSettings, ShippingOption, BankOption } from "@/services/settingsService";
 
 type BankSettings = { bank: string; accountName: string; accountNumber: string };
 type PromoBannerSettings = { dataUrl: string; name: string };

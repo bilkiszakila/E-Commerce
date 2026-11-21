@@ -7,7 +7,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { useStore } from "./store";
 import { categories, products } from "./data";
-import brandLogo from "./images/brand-logo.svg";
+const brandLogo = "/images/brand-logo.svg";
 
 export function ProductCard({ product, className = "" }: { product: typeof products[number]; className?: string }) {
   const effectivePrice = product.discountActive

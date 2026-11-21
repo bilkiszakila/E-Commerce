@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import { Product } from "./data";
 import { supabase } from "../lib/supabase/client";
-import { getIsAdmin } from "../lib/supabase/auth";
+import { getIsAdmin } from "@/services/authService";
 import Link from "next/link";
 
 export type CartItem = { key: string; product: Product; quantity: number; variants: string; unitPrice: number; fixedExtra?: number };
