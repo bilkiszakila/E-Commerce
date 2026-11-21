@@ -84,38 +84,38 @@ export function ProductCard({ product }: { product: import("./data").Product }) 
     : 0;
 
   return (
-    <article className="product-card relative min-w-[148px] overflow-hidden rounded-lg border border-[var(--brand-border)] bg-white transition sm:min-w-0">
+    <article className="product-card relative w-[148px] overflow-hidden rounded-[10px] border border-[var(--brand-border)] bg-white transition">
       <Link href={`/product/${product.id}`} className="block">
-        <div className="relative aspect-square w-full overflow-hidden bg-[var(--brand-surface)]">
+        <div className="mx-2 mt-2 relative aspect-square w-[132px] overflow-hidden rounded-[7px] bg-[var(--brand-surface)]">
           <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
           {product.badge && (
-            <span className="absolute left-2 top-2 rounded bg-[var(--brand-accent)] px-2 py-1 text-[9px] font-bold text-white">
+            <span className="absolute left-2 top-2 rounded-[4px] bg-[var(--brand-accent)] px-2 py-1 text-[9px] font-bold leading-none text-white">
               {product.badge}
             </span>
           )}
         </div>
-        <div className="p-2.5">
-          <p className="line-clamp-2 min-h-10 text-xs font-semibold leading-5 text-[var(--brand-text)]">
+        <div className="px-2 pb-2 pt-2.5">
+          <p className="line-clamp-2 min-h-8 text-[11px] font-semibold leading-4 text-[var(--brand-text)]">
             {product.name}
           </p>
-          <p className="mt-1.5 text-sm font-black text-[var(--brand-primary)]">
+          <p className="mt-1 text-[14px] font-black leading-5 text-[var(--brand-primary)]">
             {formatRupiah(product.price)}
           </p>
           {product.oldPrice && (
-            <p className="mt-0.5 flex items-center gap-1 text-[10px] text-slate-400">
+            <p className="mt-0.5 flex items-center gap-1 text-[9px] leading-3 text-slate-400">
               <span className="line-through">{formatRupiah(product.oldPrice)}</span>
               {discount > 0 && <span className="text-[var(--brand-danger)]">-{discount}%</span>}
             </p>
           )}
-          <p className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-500">
-            <Star size={10} fill="#FF7401" className="text-[var(--brand-accent)]" />
+          <p className="mt-1.5 flex items-center gap-1 text-[9px] leading-3 text-slate-500">
+            <Star size={9} fill="#FF7401" className="text-[var(--brand-accent)]" />
             {product.rating} · {product.sold}+ terjual
           </p>
         </div>
       </Link>
       <button
         type="button"
-        className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full border border-white/70 bg-white/95 text-slate-500 shadow-sm"
+        className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full border border-[var(--brand-border)] bg-white/95 text-[var(--brand-text)] shadow-sm"
         aria-label={`Tambah ${product.name} ke favorit`}
       >
         <Heart size={14} />
