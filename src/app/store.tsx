@@ -6,7 +6,18 @@ import { supabase } from "../lib/supabase/client";
 import { getIsAdmin } from "@/services/authService";
 import Link from "next/link";
 
-export type CartItem = { key: string; product: Product; quantity: number; variants: string; unitPrice: number; fixedExtra?: number };
+export type CartItem = {
+  key: string;
+  product: Product;
+  quantity: number;
+  variants: string;
+  unitPrice: number;
+  fixedExtra?: number;
+  note?: string;
+  designFileName?: string;
+  designFile?: File;
+};
+
 type Store = {
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
@@ -60,8 +71,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem("adicetak-cart", JSON.stringify(cart));
+    // Strip objek File native sebelum disimpan ke localStorage agar tidak jadi {}
+    const serializableCart = cart.map(({ designFile: _file, ...rest }) => rest);
+    localStorage.setItem("adicetak-cart", JSON.stringify(serializableCart));
   }, [cart, hydrated]);
+
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem("adicetak-login", String(loggedIn));
@@ -74,14 +88,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       window.setTimeout(() => setToastProduct(""), 3000);
       setCart((old) => {
         const found = old.find((i) => i.key === item.key);
-        return found ? old.map((i) => i.key === item.key ? { ...i, quantity: i.quantity + item.quantity } : i) : [...old, item];
+        return found
+          ? old.map((i) =>
+              i.key === item.key
+                ? {
+                    ...i,
+                    quantity: i.quantity + item.quantity,
+                    designFile: item.designFile || i.designFile,
+                    designFileName: item.designFileName || i.designFileName,
+                    note: item.note || i.note,
+                  }
+                : i
+            )
+          : [...old, item];
       });
     },
     updateQuantity(key, quantity) {
-      setCart((old) => old.map((i) => i.key === key ? { ...i, quantity: Math.max(1, quantity) } : i));
+      setCart((old) => old.map((i) => (i.key === key ? { ...i, quantity: Math.max(1, quantity) } : i)));
     },
-    removeItem(key) { setCart((old) => old.filter((i) => i.key !== key)); },
-    clearCart() { setCart([]); },
+    removeItem(key) {
+      setCart((old) => old.filter((i) => i.key !== key));
+    },
+    clearCart() {
+      setCart([]);
+    },
     cartCount: cart.reduce((n, i) => n + i.quantity, 0),
     cartTotal: cart.reduce((n, i) => n + i.unitPrice * i.quantity + (i.fixedExtra || 0), 0),
     loggedIn,
@@ -93,9 +123,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     <StoreContext.Provider value={value}>
       {children}
       {toastProduct && (
-        <div className="fixed bottom-5 left-1/2 z-[100] flex w-[calc(100%-32px)] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
-          <div className="min-w-0"><p className="text-sm font-black">Ditambahkan ke keranjang</p><p className="mt-1 truncate text-xs text-slate-500">{toastProduct}</p></div>
-          <Link href="/cart" onClick={() => setToastProduct("")} className="shrink-0 rounded-lg bg-red-500 px-3 py-2 text-xs font-bold text-white">Lihat Keranjang</Link>
+        <div className="fixed bottom-5 left-1/2 z-100 flex w-[calc(100%-32px)] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
+          <div className="min-w-0">
+            <p className="text-sm font-black">Ditambahkan ke keranjang</p>
+            <p className="mt-1 truncate text-xs text-slate-500">{toastProduct}</p>
+          </div>
+          <Link href="/cart" onClick={() => setToastProduct("")} className="shrink-0 rounded-lg bg-red-500 px-3 py-2 text-xs font-bold text-white">
+            Lihat Keranjang
+          </Link>
         </div>
       )}
     </StoreContext.Provider>

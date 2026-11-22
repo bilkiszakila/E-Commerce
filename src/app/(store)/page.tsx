@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ShieldCheck, Truck, RotateCcw, Headphones, ChevronRight, ChevronLeft, BadgePercent } from "lucide-react";
+import { ChevronRight, ChevronLeft, BadgePercent } from "lucide-react";
 import type { Product } from "@/app/data";
 import type { Category } from "@/lib/supabase/data";
 import { ProductCard } from "@/app/components";
