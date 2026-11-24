@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -7,7 +8,6 @@ import {
   LayoutDashboard,
   Heart,
   ShoppingBag,
-  ShoppingCart,
   UserRound,
 } from "lucide-react";
 
@@ -15,14 +15,14 @@ const NAV_ITEMS = [
   { label: "Beranda", href: "/", icon: House },
   { label: "Kategori", href: "/category", icon: LayoutDashboard },
   { label: "Favorit", href: "/wishlist", icon: Heart },
-  { label: "Keranjang", href: "/cart", icon: ShoppingCart },
+  { label: "Keranjang", href: "/cart", icon: ShoppingBag },
   { label: "Akun", href: "/account", icon: UserRound },
 ];
 
-export default function BottomNav() {
+function BottomNavContent() {
   const pathname = usePathname();
 
-  if (pathname.startsWith("/admin")) return null;
+  if (pathname?.startsWith("/admin")) return null;
 
   return (
     <nav
@@ -33,7 +33,7 @@ export default function BottomNav() {
         const isActive =
           href === "/"
             ? pathname === "/"
-            : pathname === href || pathname.startsWith(`${href}/`);
+            : pathname === href || pathname?.startsWith(`${href}/`);
 
         return (
           <Link
@@ -42,23 +42,30 @@ export default function BottomNav() {
             aria-current={isActive ? "page" : undefined}
             className={`relative grid place-items-center gap-1 rounded-xl py-1 text-[10px] transition ${
               isActive
-                ? "font-bold text-[#1D4ED8]"
+                ? "font-bold text-[#1842D2]"
                 : "font-medium text-slate-500 hover:text-slate-800"
             }`}
           >
-            {/* Indikator bar aktif di bagian atas item */}
             {isActive && (
-              <span className="absolute -top-2 h-1 w-6 rounded-full bg-[#1D4ED8]" />
+              <span className="absolute -top-2 h-1 w-6 rounded-full bg-[#1842D2]" />
             )}
             <Icon
               size={20}
               strokeWidth={isActive ? 2.4 : 1.9}
-              className={isActive ? "text-[#1D4ED8]" : "text-slate-500"}
+              className={isActive ? "text-[#1842D2]" : "text-slate-500"}
             />
             <span>{label}</span>
           </Link>
         );
       })}
     </nav>
+  );
+}
+
+export default function BottomNav() {
+  return (
+    <Suspense fallback={null}>
+      <BottomNavContent />
+    </Suspense>
   );
 }
