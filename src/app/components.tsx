@@ -93,11 +93,18 @@ export function Header() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { cartCount, loggedIn, isAdmin } = useStore();
   const [userName, setUserName] = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("");
   const [hasSession, setHasSession] = useState<boolean>(false);
   const [dbIsAdmin, setDbIsAdmin] = useState<boolean>(false);
+
+  // Tutup drawer & search bar mobile otomatis saat pindah halaman
+  useEffect(() => {
+    setOpen(false);
+    setSearchOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
@@ -149,6 +156,17 @@ export function Header() {
     };
   }, [pathname]);
 
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    setSearchOpen(false);
+    if (!q) {
+      router.push("/category");
+      return;
+    }
+    router.push(`/category?q=${encodeURIComponent(q)}`);
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut();
     setHasSession(false);
@@ -188,7 +206,7 @@ export function Header() {
                 Admin Dashboard
               </Link>
             )}
-            <button className="flex items-center gap-1">
+            <button type="button" className="flex items-center gap-1">
               Bahasa Indonesia <ChevronDown size={12} />
             </button>
           </div>
@@ -198,6 +216,7 @@ export function Header() {
       <div className="bg-white text-slate-950">
         <div className="mx-auto flex h-17 max-w-[1180px] items-center gap-4 px-4">
           <button
+            type="button"
             onClick={() => setOpen(true)}
             className="md:hidden"
             aria-label="Buka menu"
@@ -215,23 +234,35 @@ export function Header() {
             />
           </Link>
 
-          <div className="hidden h-11 flex-1 items-center rounded-xl border border-slate-200 bg-white focus-within:border-[#1D4ED8] md:flex">
+          {/* Form Pencarian Desktop */}
+          <form
+            onSubmit={handleSearch}
+            className="hidden h-11 flex-1 items-center rounded-full border border-slate-200 bg-white focus-within:border-[#1D4ED8] md:flex"
+          >
             <Search className="ml-4 text-slate-400" size={18} />
             <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="h-full min-w-0 flex-1 px-3 text-sm text-slate-800 outline-none"
               placeholder="Cari banner, stiker, brosur, kaos..."
             />
-            <button className="mr-1 h-9 rounded-lg bg-[#1D4ED8] px-5 text-sm font-bold text-white transition hover:bg-blue-800">
+            <button
+              type="submit"
+              className="mr-1 h-9 rounded-full bg-[#1D4ED8] px-5 text-sm font-bold text-white transition hover:bg-blue-800"
+            >
               Cari
             </button>
-          </div>
+          </form>
 
+          {/* Tombol Buka/Tutup Pencarian Mobile */}
           <button
-            onClick={() => setSearchOpen(true)}
-            className="ml-auto md:hidden"
-            aria-label="Cari"
+            type="button"
+            onClick={() => setSearchOpen((prev) => !prev)}
+            className="ml-auto rounded-full p-2 text-slate-700 hover:bg-slate-100 md:hidden"
+            aria-label={searchOpen ? "Tutup pencarian" : "Cari"}
           >
-            <Search />
+            {searchOpen ? <X size={22} /> : <Search size={22} />}
           </button>
 
           <Link
@@ -292,10 +323,8 @@ export function Header() {
                 </span>
               </Link>
 
-              {/* Dropdown Panel saat di-hover (pt-2 sebagai jembatan hover agar menu tidak menutup saat kursor turun) */}
               <div className="invisible absolute right-0 top-full z-50 w-60 pt-2 opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100">
                 <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white p-1.5 shadow-xl shadow-slate-900/10">
-                  {/* Info Singkat Profil */}
                   <div className="border-b border-slate-100 px-3 py-2.5">
                     <p className="truncate text-xs font-black text-slate-900">
                       {userName || displayFirstName}
@@ -365,7 +394,7 @@ export function Header() {
             <div>
               <div className="mb-6 flex items-center justify-between">
                 <b className="text-lg">Semua Kategori</b>
-                <button onClick={() => setOpen(false)}>
+                <button type="button" onClick={() => setOpen(false)}>
                   <X />
                 </button>
               </div>
@@ -381,7 +410,6 @@ export function Header() {
               ))}
             </div>
 
-            {/* Menu Akun di Mobile */}
             <div className="space-y-2 border-t pt-4">
               {!isAuthenticated ? (
                 <Link
@@ -435,18 +463,40 @@ export function Header() {
         </div>
       )}
 
+      {/* Bar Pencarian Mobile (Bisa Enter, Submit, & Ditutup) */}
       {searchOpen && (
-        <div className="absolute inset-x-0 top-17 border-b bg-white p-3 md:hidden">
-          <div className="flex rounded-xl border border-slate-200">
+        <div className="absolute inset-x-0 top-17 z-50 border-b border-slate-200 bg-white p-3 shadow-lg md:hidden">
+          <form
+            onSubmit={handleSearch}
+            className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-white p-1 focus-within:border-[#1D4ED8]"
+          >
             <input
+              type="search"
               autoFocus
-              className="h-11 flex-1 px-3 text-sm outline-none"
-              placeholder="Cari produk..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setSearchOpen(false);
+              }}
+              className="h-10 min-w-0 flex-1 px-4 text-sm text-slate-800 outline-none"
+              placeholder="Cari produk cetak..."
             />
-            <button className="px-4 text-[#1D4ED8]">
-              <Search size={18} />
+            <button
+              type="submit"
+              className="flex h-10 items-center justify-center rounded-full bg-[#1D4ED8] px-4 text-xs font-bold text-white"
+              aria-label="Cari produk"
+            >
+              <Search size={16} />
             </button>
-          </div>
+            <button
+              type="button"
+              onClick={() => setSearchOpen(false)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"
+              aria-label="Tutup pencarian"
+            >
+              <X size={18} />
+            </button>
+          </form>
         </div>
       )}
     </header>
