@@ -12,6 +12,7 @@ import {
   Package,
   Search,
   ShoppingBag,
+  ShoppingCart,
   UserRound,
   X,
 } from "lucide-react";
@@ -36,7 +37,7 @@ export function ProductCard({
   return (
     <Link
       href={`/product/${product.id}`}
-      className={`product-card relative overflow-hidden rounded-xl border border-slate-200 bg-white p-2 transition ${className}`}
+      className={`product-card relative overflow-hidden rounded-xl border border-blue-100 bg-white p-2 transition ${className}`}
     >
       {product.badge && (
         <span className="absolute left-4 top-4 z-10 rounded bg-orange-500 px-2 py-1 text-[9px] font-bold text-white">
@@ -57,7 +58,7 @@ export function ProductCard({
         />
       </div>
       <div>
-        <p className="mt-1 line-clamp-2 min-h-10 text-xs font-semibold leading-5 text-slate-800">
+        <p className="mt-1 line-clamp-2 min-h-6 text-xs font-semibold leading-5 text-slate-800">
           {product.name}
         </p>
         <p className="mt-2 text-base font-black text-red-500">
@@ -227,8 +228,8 @@ export function Header() {
             <Image
               src={brandLogo}
               alt="ADI CETAK"
-              width={146}
-              height={32}
+              width={131}
+              height={70}
               className="h-8 w-auto"
               priority
             />
@@ -259,7 +260,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setSearchOpen((prev) => !prev)}
-            className="ml-auto rounded-full p-2 text-slate-700 hover:bg-slate-100 md:hidden"
+            className="ml-auto rounded-full p-2  text-red-500 md:hidden"
             aria-label={searchOpen ? "Tutup pencarian" : "Cari"}
           >
             {searchOpen ? <X size={22} /> : <Search size={22} />}
@@ -278,7 +279,7 @@ export function Header() {
             className="relative ml-1 rounded-full bg-[#1D4ED8] p-2.5 text-white transition hover:bg-blue-800"
             aria-label="Keranjang"
           >
-            <ShoppingBag size={22} />
+            <ShoppingCart size={22} />
             {cartCount > 0 && (
               <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-orange-500 px-1 text-[10px] font-bold">
                 {cartCount}
@@ -388,7 +389,7 @@ export function Header() {
           onClick={() => setOpen(false)}
         >
           <aside
-            className="flex h-full w-[82%] max-w-sm flex-col justify-between bg-white p-5 text-slate-900"
+            className="flex h-full w-[82%] max-w-sm flex-col justify-between bg-red-500 p-5 text-white"
             onClick={(e) => e.stopPropagation()}
           >
             <div>
@@ -403,7 +404,7 @@ export function Header() {
                   onClick={() => setOpen(false)}
                   href={`/category?name=${encodeURIComponent(name)}`}
                   key={name}
-                  className="block border-b py-3 text-sm"
+                  className="block border-b border-blue-200 py-3 text-sm"
                 >
                   {name}
                 </Link>
@@ -487,14 +488,6 @@ export function Header() {
               aria-label="Cari produk"
             >
               <Search size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setSearchOpen(false)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100"
-              aria-label="Tutup pencarian"
-            >
-              <X size={18} />
             </button>
           </form>
         </div>

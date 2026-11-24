@@ -22,7 +22,7 @@ export default function CartPage() {
   }
 
   return (
-    <main className="mx-auto max-w-295 px-4 py-6 md:px-5">
+    <main className="mx-auto max-w-295 min-h-[80dvh] px-4 py-6 md:px-5">
       <h1 className="mb-5 text-xl font-black md:text-2xl">Keranjang Belanja</h1>
       {cart.length === 0 ? (
         <div className="rounded-xl bg-white p-12 text-center">

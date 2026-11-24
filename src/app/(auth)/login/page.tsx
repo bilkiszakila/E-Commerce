@@ -50,14 +50,12 @@ function LoginForm() {
   return (
     <main
       style={{ backgroundImage: "url('/images/login-img.png')" }}
-      className="relative mx-auto flex min-h-screen items-center justify-center bg-red-500 bg-cover bg-center bg-no-repeat px-4 py-10"
+      className="relative mx-auto flex min-h-screen overflow-hidden items-center justify-center bg-red-500 bg-cover bg-center bg-no-repeat px-4 py-10"
     >
       <div className="px-4 md:px-5 ">
         {/* Text Mobile */}
         <div className="flex flex-col py-10 text-white">
-          <h1 className="text-center text-3xl font-bold">Mau Cetak?</h1>
-          <h2 className="text-center text-xl">Ingat A DI Cetak Aja!</h2>
-          <p className="text-center text-xs">Harga Bersahabat, Kualiatas Mantap 👍</p>
+          <img src="/images/brandlogo-white.svg" alt="Logo A Di Cetak Aja" className="h-[48px] md:h-[120px]"/>
         </div>
         
         {/* Form Login */}

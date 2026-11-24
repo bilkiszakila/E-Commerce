@@ -1,16 +1,64 @@
 "use client";
 
 import Link from "next/link";
-import { House, Grid3X3, Heart, ShoppingBag, UserRound } from "lucide-react";
+import { usePathname } from "next/navigation";
+import {
+  House,
+  LayoutDashboard,
+  Heart,
+  ShoppingBag,
+  ShoppingCart,
+  UserRound,
+} from "lucide-react";
+
+const NAV_ITEMS = [
+  { label: "Beranda", href: "/", icon: House },
+  { label: "Kategori", href: "/category", icon: LayoutDashboard },
+  { label: "Favorit", href: "/wishlist", icon: Heart },
+  { label: "Keranjang", href: "/cart", icon: ShoppingCart },
+  { label: "Akun", href: "/account", icon: UserRound },
+];
 
 export default function BottomNav() {
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/admin")) return null;
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-5 border-t bg-white px-2 py-2 md:hidden">
-      <Link href="/" className="grid place-items-center gap-1 text-[10px]"><House size={19}/>Beranda</Link>
-      <Link href="/category" className="grid place-items-center gap-1 text-[10px]"><Grid3X3 size={19}/>Kategori</Link>
-      <Link href="/wishlist" className="grid place-items-center gap-1 text-[10px]"><Heart size={19}/>Favorit</Link>
-      <Link href="/cart" className="grid place-items-center gap-1 text-[10px]"><ShoppingBag size={19}/>Keranjang</Link>
-      <Link href="/account" className="grid place-items-center gap-1 text-[10px]"><UserRound size={19}/>Akun</Link>
+    <nav
+      aria-label="Navigasi Mobile"
+      className="fixed bottom-0 left-0 right-0 z-50 grid grid-cols-5 border-t border-slate-200 bg-white/95 px-2 py-2 backdrop-blur-md md:hidden"
+    >
+      {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
+        const isActive =
+          href === "/"
+            ? pathname === "/"
+            : pathname === href || pathname.startsWith(`${href}/`);
+
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={isActive ? "page" : undefined}
+            className={`relative grid place-items-center gap-1 rounded-xl py-1 text-[10px] transition ${
+              isActive
+                ? "font-bold text-[#1D4ED8]"
+                : "font-medium text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            {/* Indikator bar aktif di bagian atas item */}
+            {isActive && (
+              <span className="absolute -top-2 h-1 w-6 rounded-full bg-[#1D4ED8]" />
+            )}
+            <Icon
+              size={20}
+              strokeWidth={isActive ? 2.4 : 1.9}
+              className={isActive ? "text-[#1D4ED8]" : "text-slate-500"}
+            />
+            <span>{label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }
