@@ -128,6 +128,7 @@ export default function AdminSettingsPage() {
         const { error: bannerInsertErr } = await supabase
           .from("promo_banners")
           .insert({
+            id: crypto.randomUUID(),
             image_url: publicUrl,
             active: true,
           });
