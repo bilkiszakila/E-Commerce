@@ -15,12 +15,6 @@ export default function Home() {
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("adicetak-promo-banner") || "null");
-      if (saved?.dataUrl) setPromoBanner(saved.dataUrl);
-    } catch {
-      setPromoBanner("");
-    }
     Promise.all([getProducts(), getCategories(), getActiveBanner()]).then(([items, categoryItems, banner]) => {
       setDisplayProducts(items);
       setDisplayCategories(categoryItems);
