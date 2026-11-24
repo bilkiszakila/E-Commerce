@@ -15,12 +15,14 @@ export default function Home() {
   const [loadingProducts, setLoadingProducts] = useState(true);
 
   useEffect(() => {
-    Promise.all([getProducts(), getCategories(), getActiveBanner()]).then(([items, categoryItems, banner]) => {
-      setDisplayProducts(items);
-      setDisplayCategories(categoryItems);
-      if (banner) setPromoBanner(banner);
-      setLoadingProducts(false);
-    });
+    Promise.all([getProducts(), getCategories(), getActiveBanner()]).then(
+      ([items, categoryItems, banner]) => {
+        setDisplayProducts(items);
+        setDisplayCategories(categoryItems);
+        if (banner) setPromoBanner(banner);
+        setLoadingProducts(false);
+      },
+    );
   }, []);
 
   return (

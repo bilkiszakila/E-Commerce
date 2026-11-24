@@ -57,7 +57,6 @@ export default function AdminSettingsPage() {
       if (settings.bankOptions.length) setBankOptions(settings.bankOptions);
     });
 
-    // Muat banner aktif langsung dari Supabase
     getActiveBanner().then((activeUrl) => {
       if (activeUrl) {
         setPromoBanner({
@@ -72,7 +71,6 @@ export default function AdminSettingsPage() {
     const ext = file.name.split(".").pop() || "png";
     const filePath = `promo-${Date.now()}.${ext}`;
 
-    // Coba upload ke bucket "banners", lalu fallback ke "products" atau "designs"
     const buckets = ["banners", "products", "designs"];
     for (const bucket of buckets) {
       const { error } = await supabase.storage
@@ -104,7 +102,6 @@ export default function AdminSettingsPage() {
     setBannerError("");
 
     try {
-      // 1. Simpan pengaturan bank & ongkir
       const { error } = await supabase.from("store_settings").upsert(
         {
           id: 1,
@@ -120,21 +117,17 @@ export default function AdminSettingsPage() {
 
       if (error) throw new Error(error.message);
 
-      // 2. Jika ada file banner baru dipilih, upload ke Storage & simpan ke tabel promo_banners
       if (promoBanner.file) {
         const publicUrl = await uploadBannerFile(promoBanner.file);
 
-        // Nonaktifkan banner lama
         await supabase
           .from("promo_banners")
           .update({ active: false })
           .eq("active", true);
 
-        // Insert banner baru yang aktif
         const { error: bannerInsertErr } = await supabase
           .from("promo_banners")
           .insert({
-            title: promoBanner.name || "Banner Promo Utama",
             image_url: publicUrl,
             active: true,
           });
@@ -146,10 +139,6 @@ export default function AdminSettingsPage() {
           name: promoBanner.name,
           file: undefined,
         });
-        localStorage.setItem(
-          "adicetak-promo-banner",
-          JSON.stringify({ dataUrl: publicUrl, name: promoBanner.name }),
-        );
       }
 
       setSaved(true);
